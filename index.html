@@ -1018,6 +1018,11 @@ html.dark .login-footer{color:#85775E}
       <span class="badge bgr" id="appr-voice"></span>
     </div>
     <div class="preview-text" id="appr-body" style="max-height:280px"></div>
+    <div id="appr-qa-flags" style="display:none;margin-top:12px;padding:12px 14px;background:var(--amber-bg);border:1px solid var(--border);border-radius:var(--radius)"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <button class="btn bs" onclick="exportCurrentArticleDoc()">Export Word doc</button>
+      <span id="appr-export-msg" style="font-size:11px;color:var(--text3)"></span>
+    </div>
 
     <div class="dv"></div>
 
@@ -2803,6 +2808,43 @@ function _gptzeroFlaggedSentences(data, minProb=0.5){
   }catch(e){return [];}
 }
 
+function getAiFlagsFromLastScan(article){
+  const sentenceFlags=_gptzeroFlaggedSentences(_lastGptzeroData,0.5).slice(0,20).map(x=>({
+    type:'sentence',
+    text:x.text,
+    probability:Math.round((x.prob||0)*100)
+  }));
+  if(sentenceFlags.length)return sentenceFlags;
+  return likelySyntheticParagraphs(article,6).map(x=>({
+    type:'paragraph',
+    text:x.text,
+    probability:x.probability,
+    reason:x.reason
+  }));
+}
+
+function likelySyntheticParagraphs(article,limit=6){
+  const paragraphs=String(article||'').split(/\n{2,}/).map(x=>x.trim()).filter(x=>x.length>80);
+  const aiWords=['landscape','navigate','leverage','comprehensive','robust','streamline','cutting-edge','furthermore','moreover','consequently','seamless','transformative','dynamic','crucial','essential','pivotal','realm','utilize','facilitate'];
+  return paragraphs.map((text,idx)=>{
+    const sentences=text.split(/[.!?]+/).map(s=>s.trim()).filter(Boolean);
+    const lengths=sentences.map(s=>s.split(/\s+/).length);
+    const avg=lengths.reduce((a,b)=>a+b,0)/(lengths.length||1);
+    const variance=lengths.reduce((a,b)=>a+Math.pow(b-avg,2),0)/(lengths.length||1);
+    const starts=sentences.map(s=>(s.split(/\s+/)[0]||'').toLowerCase());
+    const repeatedStarts=starts.length-new Set(starts).size;
+    const lower=text.toLowerCase();
+    const buzz=aiWords.filter(w=>lower.includes(w)).length;
+    const score=Math.min(99,Math.round(35+buzz*8+repeatedStarts*10+(variance<18?18:0)+(sentences.length>3&&avg>14&&avg<24?12:0)));
+    const reasons=[];
+    if(buzz)reasons.push('generic AI-like phrasing');
+    if(repeatedStarts)reasons.push('repeated sentence openings');
+    if(variance<18)reasons.push('uniform sentence rhythm');
+    if(!reasons.length)reasons.push('paragraph-level fallback flag');
+    return {idx,text,probability:score,reason:reasons.join(', ')};
+  }).sort((a,b)=>b.probability-a.probability).slice(0,limit);
+}
+
 // Surgical rewrite: rewrite ONLY GPTZero-flagged sentences, in place. Returns the modified article
 // plus a count of successful substitutions. null if nothing could be done.
 async function humaniseFlaggedSentences(article, data, {tov, brandPov, bannedWords, maxRewrites=12}={}){
@@ -2844,7 +2886,37 @@ Return ONLY the rewritten sentence.`,
     }
   }
   if(rewritten===0)return null;
-  return {article:working, rewritten, totalFlagged:flagged.length, targeted:toRewrite.length};
+  return {article:working, rewritten, totalFlagged:flagged.length, targeted:toRewrite.length, flags:flagged.slice(0,20).map(x=>({type:'sentence',text:x.text,probability:Math.round((x.prob||0)*100)}))};
+}
+
+async function humaniseLikelyAiParagraphs(article, {tov, brandPov, bannedWords, maxRewrites=4}={}){
+  const flagged=likelySyntheticParagraphs(article,maxRewrites);
+  if(!flagged.length)return null;
+  let working=article;
+  let rewritten=0;
+  const defaultBanList=['landscape','navigate','leverage','comprehensive','robust','streamline','cutting-edge',"in today's",'dive into','delve into','game-changer','moreover','furthermore','consequently','revolutionize','harness','elevate','realm','tapestry','seamless','transformative','multifaceted','utilize','utilise','facilitate','paramount','crucial','essential','in conclusion','unprecedented','ever-evolving','at the forefront','cornerstone','bespoke','vibrant','dynamic'];
+  const banList=((bannedWords&&bannedWords.length)?bannedWords:defaultBanList).slice(0,40).join(', ');
+  const tovLine=tov?`Voice: ${tov.name} — ${tov.role}. ${tov.summary||''} Signature habits: ${tov.phrases||''}`:'';
+  const povLine=(brandPov||'').split('\n').slice(0,5).join(' ');
+  for(const item of flagged){
+    if(!working.includes(item.text))continue;
+    try{
+      const fresh=await openai(
+        `You rewrite ONE flagged paragraph at a time to remove AI-detection patterns while preserving exact facts, names, numbers, jurisdictions, claims, and SEO terms. No preamble, no markdown fences. ${tovLine} ${povLine?'Context: '+povLine:''}`.trim(),
+        `Rewrite this paragraph only. Keep every factual claim intact. Make the rhythm less uniform, remove generic phrasing, add a practitioner-style cadence, and keep it precise for regulated fintech/crypto/licensing content.\n\nFlag reason: ${item.reason}\nBanned words: ${banList}\n\nParagraph:\n${item.text}\n\nReturn only the rewritten paragraph.`,
+        Math.min(900, Math.max(300, item.text.split(/\s+/).length*3)),
+        {model:'gpt-4.1',temperature:0.85}
+      );
+      const clean=(fresh||'').trim().replace(/^```[\s\S]*?\n?/,'').replace(/\n?```$/,'').replace(/\s+/g,' ');
+      if(!clean||clean.length<item.text.length*0.65||clean.length>item.text.length*2.2)continue;
+      working=working.replace(item.text,clean);
+      rewritten++;
+    }catch(e){
+      console.warn('[humaniseLikelyAiParagraphs] rewrite failed:',(e.message||e));
+    }
+  }
+  if(rewritten===0)return null;
+  return {article:working, rewritten, totalFlagged:flagged.length, targeted:flagged.length, flags:flagged};
 }
 
 function isGptzeroConfigured(){ return !!(_integrationStatus&&_integrationStatus.gptzero); }
@@ -4525,11 +4597,11 @@ function renderQueue(){
   if(!(sd.queue||[]).length){list.innerHTML='';emp.style.display='block';return;}
   emp.style.display='none';list.innerHTML='';
   [...sd.queue].reverse().forEach(q=>{
-    const sb={waiting:'bgr',running:'bin',approving:'bwa',done:'bok',error:'ber',review:'bca'}[q.status]||'bgr';
-    const sl={waiting:'Waiting',running:'Running',approving:'Awaiting approval',done:'Approved',error:'Error',review:'Pending review'}[q.status]||q.status;
+    const sb={waiting:'bgr',running:'bin',approving:'bwa',done:'bok',error:'ber',review:'bca',human_edit:'ber'}[q.status]||'bgr';
+    const sl={waiting:'Waiting',running:'Running',approving:'Awaiting approval',done:'Approved',error:'Error',review:'Pending review',human_edit:'Needs human edit'}[q.status]||q.status;
     const tov=(S.tovs||[]).find(t=>t.id===q.tovId);
     const div=document.createElement('div');div.className='qi';
-    if(q.status==='error')div.style.borderLeftColor='#c62828';
+    if(q.status==='error'||q.status==='human_edit')div.style.borderLeftColor='#c62828';
     if(q.status==='done')div.style.borderLeftColor='#2e7d32';
     const wcLabel={'600':'600w','900':'900w','1200':'1.2k','1500':'1.5k','2000':'2k'}[q.wordCount||S.settings.wc||'900']||(q.wordCount||'900')+'w';
     const site=q.targetSite||activeSite;
@@ -4543,10 +4615,12 @@ function renderQueue(){
       ${q.seoFocus?`<span class="badge bse" style="font-size:9px" title="${q.seoFocus}">SEO</span>`:''}
       <span class="badge ${sb}">${sl}</span>
       ${q.status==='error'?`<button class="btn bs bsuc" onclick="retryQ('${q.id}')" title="Reset to waiting and retry with current settings">↻ Retry</button>`:''}
+      ${q.status==='human_edit'?`<button class="btn bs bp" onclick="openHumanEdit('${q.id}')">Edit &amp; re-check →</button>`:''}
+      ${q.status==='human_edit'?`<button class="btn bs" onclick="exportQueueArticleDoc('${q.id}')">Export Word</button>`:''}
       ${q.status==='running'?`<button class="btn bs bsuc" onclick="retryQ('${q.id}')">↻ Retry</button>`:''}
       ${q.status==='review'&&currentSession&&currentSession.role!=='writer'?`<button class="btn bs bp" onclick="reviewArticle('${q.id}')">Review &amp; publish →</button>`:''}
       ${q.status==='review'&&currentSession&&currentSession.role==='writer'?`<span style="font-size:10px;color:var(--text3)">Submitted by ${q.submittedBy||'you'} — awaiting editor</span>`:''}
-      ${q.status==='waiting'||q.status==='error'||q.status==='running'?`<button class="btn bs bd" onclick="removeQ('${q.id}')" title="Remove from queue (topic becomes available again)">✕</button>`:''}
+      ${q.status==='waiting'||q.status==='error'||q.status==='running'||q.status==='human_edit'?`<button class="btn bs bd" onclick="removeQ('${q.id}')" title="Remove from queue (topic becomes available again)">✕</button>`:''}
     </div>
     <div class="qm">
       ${tov?`<span style="color:var(--text3)">Voice: <strong style="color:var(--text2)">${tov.name}</strong></span>`:''}
@@ -4563,6 +4637,11 @@ function renderQueue(){
         <button class="btn bs" onclick="retryWithVoiceChange('${q.id}')" style="font-size:11px">↻ Retry with different voice</button>
         <button class="btn bs bd" onclick="removeQ('${q.id}')" style="font-size:11px">✕ Remove &amp; free topic</button>
       </div>
+    </div>`:''}
+    ${q.status==='human_edit'?`<div style="margin-top:8px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px">
+      <div style="font-size:11px;font-weight:700;color:#991b1b;margin-bottom:4px">AI detection blocker: ${q.generatedAiScore||q.aiScore||'—'}% exceeds ${q.aiThreshold||S.settings.th||20}%</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px">The draft is saved inside the app only. Edit the flagged sections, then re-check. It will not be sent to HubSpot, WordPress, or socials until it passes.</div>
+      ${(q.aiFlags||[]).slice(0,4).map(f=>`<div style="font-size:11px;color:var(--text2);margin:4px 0;padding-left:8px;border-left:2px solid #fca5a5"><strong>${f.type||'flag'} ${f.probability?f.probability+'%':''}</strong> ${escapeHtml((f.text||'').slice(0,220))}${(f.text||'').length>220?'...':''}</div>`).join('')}
     </div>`:''}
     ${q.status==='waiting'?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div style="flex:0 0 auto"><label style="font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:2px">Voice</label><select class="qi-voice-sel" data-qid="${q.id}" data-site="${site}" style="width:150px;font-size:11px;padding:4px 6px" onchange="updateQField('${q.id}','tovId',this.value)">
@@ -4584,6 +4663,150 @@ function renderQueue(){
   });
   updateRunBtn();
 }
+
+function renderApprovalQaFlags(data={}){
+  const el=E('appr-qa-flags');
+  if(!el)return;
+  const flags=data.aiFlags||[];
+  const hist=data.rewriteHistory||[];
+  if(!flags.length&&!hist.length){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='block';
+  el.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">AI detection QA</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Final score: <strong>${data.aiScore??'—'}%</strong> · Threshold: <strong>${data.aiThreshold??(S.settings.th||20)}%</strong></div>
+    ${hist.length?`<div style="font-size:11px;color:var(--text2);margin-bottom:8px">${hist.map(h=>`Round ${h.round}: ${h.beforeScore??'—'}%${h.afterScore!=null?' → '+h.afterScore+'%':''} · ${h.method} · rewrote ${h.rewritten||0}/${h.targeted||0}`).join('<br>')}</div>`:''}
+    ${flags.length?`<div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">Visible flagged segments</div>${flags.slice(0,8).map(f=>`<div style="font-size:11px;color:var(--text2);margin:5px 0;padding-left:8px;border-left:2px solid var(--amber)"><strong>${escapeHtml(f.type||'segment')} ${f.probability?escapeHtml(f.probability)+'%':''}</strong> ${escapeHtml((f.text||'').slice(0,260))}${(f.text||'').length>260?'...':''}${f.reason?`<div style="color:var(--text3)">Reason: ${escapeHtml(f.reason)}</div>`:''}</div>`).join('')}`:''}`;
+}
+
+function findQ(qid){
+  for(const siteKey of Object.keys(S.sites||{})){
+    const q=(S.sites[siteKey].queue||[]).find(x=>x.id===qid);
+    if(q)return q;
+  }
+  return null;
+}
+
+function openHumanEdit(qid){
+  const q=findQ(qid);if(!q)return;
+  const overlay=document.createElement('div');
+  overlay.id='humanEditOverlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
+  const flags=q.aiFlags||[];
+  overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;width:min(980px,96vw);max-height:92vh;overflow:auto;padding:22px;box-shadow:var(--shadow-lg)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+      <div>
+        <div class="ct" style="margin-bottom:4px">Needs human edit</div>
+        <h3 style="font-size:20px;margin:0">${escapeHtml(q.generatedTitle||q.title)}</h3>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">AI score ${q.generatedAiScore||q.aiScore||'—'}% · threshold ${q.aiThreshold||S.settings.th||20}% · edit flagged sections, then re-check.</div>
+      </div>
+      <button class="btn bs" onclick="document.getElementById('humanEditOverlay')?.remove()">Close</button>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px">
+      <div>
+        <textarea id="humanEditArticle" rows="22" style="font-size:13px;line-height:1.55;font-family:var(--font)">${escapeHtml(q.generatedArticle||'')}</textarea>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
+          <button class="btn bp" id="humanRecheckBtn" onclick="recheckHumanEdit('${qid}')">Re-check article</button>
+          <button class="btn bs" onclick="exportQueueArticleDoc('${qid}')">Export Word doc</button>
+          <span id="humanEditMsg" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;max-height:560px;overflow:auto">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px">Flagged segments</div>
+        ${flags.length?flags.map((f,i)=>`<div style="font-size:11px;color:var(--text2);padding:8px 0;border-bottom:1px solid var(--border)"><strong>${i+1}. ${escapeHtml(f.type||'segment')} ${f.probability?escapeHtml(f.probability)+'%':''}</strong><br>${escapeHtml((f.text||'').slice(0,360))}${(f.text||'').length>360?'...':''}${f.reason?`<div style="color:var(--text3);margin-top:4px">Reason: ${escapeHtml(f.reason)}</div>`:''}</div>`).join(''):'<div style="font-size:11px;color:var(--text3)">No segment-level flags were returned. Edit paragraphs that feel too uniform or generic.</div>'}
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function recheckHumanEdit(qid){
+  const q=findQ(qid);if(!q)return;
+  const msg=E('humanEditMsg');const btn=E('humanRecheckBtn');
+  const edited=(E('humanEditArticle')?.value||'').trim();
+  if(!edited){if(msg)msg.textContent='Article cannot be empty.';return;}
+  btn.disabled=true;if(msg){msg.textContent='Running GPTZero re-check...';msg.style.color='var(--text2)';}
+  try{
+    const beforeScore=q.generatedAiScore??q.aiScore;
+    const score=await detectAI(edited);
+    const flags=getAiFlagsFromLastScan(edited);
+    q.generatedArticle=edited;q.generatedHtml='<div>'+markdownToHtml(edited)+'</div>';q.generatedAiScore=score;q.aiScore=score;q.aiFlags=flags;
+    const thresh=q.aiThreshold||parseInt(S.settings.th)||20;
+    if(score<=thresh){
+      q.humanEditedArticle=edited;
+      q.status='waiting';
+      q.errorReason='';
+      q.aiRewriteHistory=[...(q.aiRewriteHistory||[]),{round:'human',beforeScore,afterScore:score,method:'manual human edit',flagged:flags.length,targeted:flags.length,rewritten:flags.length}];
+      persist();renderQueue();renderBadges();
+      if(msg){msg.textContent='Passed at '+score+'%. It is back in the queue and will continue from this edited draft.';msg.style.color='var(--green)';}
+      setTimeout(()=>document.getElementById('humanEditOverlay')?.remove(),1200);
+    }else{
+      q.status='human_edit';
+      q.errorReason='Needs human edit: AI detection score ('+score+'%) still exceeds '+thresh+'% threshold';
+      persist();renderQueue();
+      if(msg){msg.textContent='Still blocked at '+score+'%. Flags refreshed; keep editing and re-check.';msg.style.color='var(--red)';}
+    }
+  }catch(e){
+    if(msg){msg.textContent='Re-check failed: '+(e.message||e);msg.style.color='var(--red)';}
+  }finally{btn.disabled=false;}
+}
+
+function articleExportPayload(paOrQ){
+  const pa=paOrQ||pendingApproval||{};
+  return {
+    title:pa.title||pa.generatedTitle||'Article',
+    article:pa.article||pa.generatedArticle||'',
+    html:pa.html||pa.generatedHtml||'',
+    aiScore:pa.aiScore??pa.generatedAiScore,
+    aiThreshold:pa.aiThreshold,
+    aiFlags:pa.aiFlags||[],
+    rewriteHistory:pa.rewriteHistory||pa.aiRewriteHistory||[],
+    seoTags:pa.seoTags||pa.generatedSeoTags||[],
+    seoMeta:pa.seoMeta||pa.generatedSeoMeta||'',
+    seoSlug:pa.seoSlug||pa.generatedSeoSlug||'',
+    seoKeywords:pa.seoKeywords||pa.generatedSeoKeywords||[],
+    seoOg:pa.seoOg||pa.generatedSeoOg||{},
+    seoScore:pa.seoScore||pa.generatedSeoScore||0,
+    socialCap:pa.socialCap||pa.generatedSocialCap||'',
+    imageAltText:pa.imageAltText||pa.generatedImageAltText||'',
+    category:pa.category||pa.qi?.category||'',
+    namedEntity:pa.namedEntity||pa.qi?.namedEntity||'',
+    targetSite:pa.targetSite||pa.qi?.targetSite||activeSite
+  };
+}
+
+function exportCurrentArticleDoc(){ exportArticleDoc(articleExportPayload(pendingApproval)); }
+function exportQueueArticleDoc(qid){ const q=findQ(qid); if(q)exportArticleDoc(articleExportPayload(q)); }
+function exportArticleDoc(data){
+  const title=data.title||'Article';
+  const bodyHtml=data.html||('<div>'+markdownToHtml(data.article||'')+'</div>');
+  const flags=(data.aiFlags||[]).map(f=>`<li><strong>${escapeHtml(f.type||'segment')} ${f.probability?escapeHtml(f.probability)+'%':''}</strong>: ${escapeHtml(f.text||'')}${f.reason?' <em>('+escapeHtml(f.reason)+')</em>':''}</li>`).join('');
+  const hist=(data.rewriteHistory||[]).map(h=>`<tr><td>${escapeHtml(h.round)}</td><td>${escapeHtml(h.beforeScore??'')}</td><td>${escapeHtml(h.afterScore??'')}</td><td>${escapeHtml(h.method||'')}</td><td>${escapeHtml((h.rewritten||0)+'/'+(h.targeted||0))}</td></tr>`).join('');
+  const doc=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font-family:Arial,sans-serif;line-height:1.5;color:#111}h1,h2{font-family:Georgia,serif}.meta{background:#f3f4f6;padding:12px;border:1px solid #ddd;margin:14px 0}table{border-collapse:collapse;width:100%;margin:10px 0}td,th{border:1px solid #ccc;padding:6px;text-align:left}li{margin-bottom:6px}</style></head><body>
+    <h1>${escapeHtml(title)}</h1>
+    <div class="meta"><strong>Target site:</strong> ${escapeHtml(data.targetSite||'')}<br><strong>Category:</strong> ${escapeHtml(data.category||'')}<br><strong>Named entity:</strong> ${escapeHtml(data.namedEntity||'')}<br><strong>AI score:</strong> ${escapeHtml(data.aiScore??'—')}% ${data.aiThreshold?'(threshold '+escapeHtml(data.aiThreshold)+'%)':''}</div>
+    <h2>Article</h2>${bodyHtml}
+    <h2>SEO / AEO Package</h2>
+    <table><tr><th>Field</th><th>Value</th></tr>
+      <tr><td>SEO title</td><td>${escapeHtml(data.seoOg?.seoTitle||data.seoOg?.title||title)}</td></tr>
+      <tr><td>Meta description</td><td>${escapeHtml(data.seoMeta||'')}</td></tr>
+      <tr><td>Slug</td><td>${escapeHtml(data.seoSlug||'')}</td></tr>
+      <tr><td>Tags</td><td>${escapeHtml((data.seoTags||[]).join(', '))}</td></tr>
+      <tr><td>Focus keywords</td><td>${escapeHtml((data.seoKeywords||[]).join(', '))}</td></tr>
+      <tr><td>SEO score</td><td>${escapeHtml(data.seoScore||'')}</td></tr>
+      <tr><td>Image alt text</td><td>${escapeHtml(data.imageAltText||'')}</td></tr>
+      <tr><td>Social caption</td><td>${escapeHtml(data.socialCap||'')}</td></tr>
+    </table>
+    <h2>AI Detection QA</h2>
+    ${hist?`<table><tr><th>Round</th><th>Before</th><th>After</th><th>Method</th><th>Rewritten</th></tr>${hist}</table>`:'<p>No rewrite history recorded.</p>'}
+    <h3>Flagged Segments</h3>${flags?`<ul>${flags}</ul>`:'<p>No visible flags recorded.</p>'}
+  </body></html>`;
+  const blob=new Blob(['\ufeff',doc],{type:'application/msword'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'article')+'-content-studio.doc';
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+  const msg=E('appr-export-msg');if(msg){msg.textContent='Word doc exported';setTimeout(()=>msg.textContent='',2500);}
+}
+
 function updateRunBtn(){
   const chks=document.querySelectorAll('.qi-chk:checked');
   const btn=E('runbtn');
@@ -4699,6 +4922,7 @@ async function reviewArticle(queueId){
   const tov=(S.tovs||[]).find(t=>t.id===qi.tovId);
   E('appr-voice').textContent=tov?tov.name:'Default';
   E('appr-body').textContent=qi.generatedArticle||'';
+  renderApprovalQaFlags({aiFlags:qi.aiFlags||[],rewriteHistory:qi.aiRewriteHistory||[],aiScore,aiThreshold:qi.aiThreshold});
   // Social captions
   const blogUrl='https://obtained.com/blog';
   E('appr-li-caption').value=(qi.generatedSocialCap||qi.title)+'\n\n'+blogUrl;
@@ -4770,7 +4994,7 @@ async function reviewArticle(queueId){
   E('approvalcard').scrollIntoView({behavior:'smooth',block:'start'});
   // Set up pending approval with restored content
   const revImgs=qi.generatedImages||[];
-  pendingApproval={qi,title:qi.generatedTitle||qi.title,html:qi.generatedHtml||'',article:qi.generatedArticle||'',aiScore,tov,socialCap:qi.generatedSocialCap||'',seoTags:qi.generatedSeoTags||[],seoMeta:qi.generatedSeoMeta||'',seoSlug:qi.generatedSeoSlug||'',seoKeywords:qi.generatedSeoKeywords||[],seoOg:qi.generatedSeoOg||{},seoScore:qi.generatedSeoScore||0,images:revImgs,selectedImage:revImgs.length===1?0:null,imageAltText:qi.generatedImageAltText||qi.title,hsId:null,liDone:false,fbDone:false,rejected:false,submitted:false,targetSite:qi.targetSite||'obtained'};
+  pendingApproval={qi,title:qi.generatedTitle||qi.title,html:qi.generatedHtml||'',article:qi.generatedArticle||'',aiScore,aiThreshold:qi.aiThreshold,aiFlags:qi.aiFlags||[],rewriteHistory:qi.aiRewriteHistory||[],tov,socialCap:qi.generatedSocialCap||'',seoTags:qi.generatedSeoTags||[],seoMeta:qi.generatedSeoMeta||'',seoSlug:qi.generatedSeoSlug||'',seoKeywords:qi.generatedSeoKeywords||[],seoOg:qi.generatedSeoOg||{},seoScore:qi.generatedSeoScore||0,images:revImgs,selectedImage:revImgs.length===1?0:null,imageAltText:qi.generatedImageAltText||qi.title,hsId:null,liDone:false,fbDone:false,rejected:false,submitted:false,targetSite:qi.targetSite||'obtained'};
   // Wait for editor to finish
   await new Promise(resolve=>{approvalResolve=resolve;});
   E('approvalcard').style.display='none';
@@ -4840,6 +5064,12 @@ async function runPipeline(qi){
 
   // Generate
   try{
+    if(qi.humanEditedArticle){
+      psd('gen','do');pss('gen','Human edited draft');pprog(32);
+      title=qi.generatedTitle||qi.title;
+      article=qi.humanEditedArticle;
+      plog('Using human-edited draft from Needs human edit queue — generation skipped','lok');
+    }else{
     psd('gen','dr');pss('gen','Starting multi-model draft...');plog('Starting multi-model article generation (Draft: GPT-4.1 → Rewrite: Claude → Polish: GPT-4.1)','lin');
     const tovPrompt=tov?`WRITE IN THIS EXACT AUTHOR VOICE:
 Author: ${tov.name} — ${tov.role}
@@ -5175,6 +5405,7 @@ Return the full polished article. First line must be the TITLE: line.`,
       }
     }
     pss('gen', wc + ' words');
+    }
   }catch(e){
     psd('gen','de');pss('gen','Failed');plog('Generation failed: '+e.message,'ler');
     alog('pipeline','Pipeline failed','Title: '+qi.title+' | Error: '+e.message);
@@ -5186,11 +5417,19 @@ Return the full polished article. First line must be the TITLE: line.`,
   const thresh=parseInt(cfg.th)||15;
   const maxRounds=5;
   let aiBlocked=false;
+  let rewriteHistory=[];
+  let latestAiFlags=[];
   for(let round=1;round<=maxRounds;round++){
     try{
       psd('det','dr');pss('det','Round '+round+'/'+maxRounds+'...');plog('AI detection round '+round+'/'+maxRounds,'lin');
       aiScore=await detectAI(article);
+      if(rewriteHistory.length && rewriteHistory[rewriteHistory.length-1].afterScore==null){
+        rewriteHistory[rewriteHistory.length-1].afterScore=aiScore;
+        plog('Rewrite result: '+rewriteHistory[rewriteHistory.length-1].beforeScore+'% → '+aiScore+'%','lin');
+      }
+      latestAiFlags=getAiFlagsFromLastScan(article);
       plog('AI score: '+aiScore+'% (threshold: '+thresh+'%)','lin');
+      if(latestAiFlags.length)plog('Flagged segments: '+latestAiFlags.length+' ('+latestAiFlags.slice(0,3).map(f=>(f.type||'segment')+' '+(f.probability||'')+'%').join(', ')+')','ldm');
       if(aiScore<=thresh){
         psd('det','do');pss('det',aiScore+'% ✓ passes');pprog(55);
         if(round===1){psd('hum','dk');pss('hum','Not needed');}
@@ -5209,7 +5448,9 @@ Return the full polished article. First line must be the TITLE: line.`,
           try{
             segmentResult=await humaniseFlaggedSentences(article, _lastGptzeroData, {tov, maxRewrites:15});
             if(segmentResult){
+              const beforeScore=aiScore;
               article=segmentResult.article;
+              rewriteHistory.push({round,beforeScore,method:'GPTZero flagged sentences',flagged:segmentResult.totalFlagged,targeted:segmentResult.targeted,rewritten:segmentResult.rewritten,flags:segmentResult.flags||latestAiFlags});
               plog('Surgical rewrite — rewrote '+segmentResult.rewritten+'/'+segmentResult.targeted+' flagged sentence'+(segmentResult.rewritten===1?'':'s')+' (of '+segmentResult.totalFlagged+' total flagged)','lok');
               const newWc=article.split(/\s+/).length;
               psd('hum','do');pss('hum','Round '+round+': '+segmentResult.rewritten+' sentences ('+newWc+'w)');
@@ -5221,7 +5462,22 @@ Return the full polished article. First line must be the TITLE: line.`,
           }
         }
 
-        // Phase 2 — FALLBACK: full-article rewrite (runs if no GPTZero sentence data OR surgical made no changes)
+        // Phase 2 — FALLBACK: paragraph-level rewrite before considering a full article rewrite.
+        try{
+          segmentResult=await humaniseLikelyAiParagraphs(article,{tov,brandPov,maxRewrites:4});
+          if(segmentResult){
+            const beforeScore=aiScore;
+            article=segmentResult.article;
+            rewriteHistory.push({round,beforeScore,method:'diagnostic flagged paragraphs',flagged:segmentResult.totalFlagged,targeted:segmentResult.targeted,rewritten:segmentResult.rewritten,flags:segmentResult.flags||latestAiFlags});
+            plog('Paragraph rewrite — rewrote '+segmentResult.rewritten+'/'+segmentResult.targeted+' likely AI-heavy paragraph'+(segmentResult.rewritten===1?'':'s'),'lok');
+            psd('hum','do');pss('hum','Round '+round+': '+segmentResult.rewritten+' paragraphs');
+            continue;
+          }
+        }catch(paraErr){
+          plog('Paragraph rewrite skipped: '+(paraErr.message||paraErr),'ldm');
+        }
+
+        // Phase 3 — LAST RESORT: full-article rewrite.
         plog('Falling back to full-article rewrite','lin');
         // Use generous token budget so the rewrite is NOT truncated (was defaulting to 1000 tokens — caused short articles)
         const humanMaxTok = Math.min(8000, Math.max(currentWc * 2 + 500, 2500));
@@ -5253,6 +5509,7 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
           plog(`Rewrite returned ${newWc} words (was ${currentWc}) — too short, keeping previous version and trying again next round`,'ler');
           // Keep 'article' unchanged — next round will try again
         } else {
+          rewriteHistory.push({round,beforeScore:aiScore,method:'full article rewrite',flagged:latestAiFlags.length,targeted:1,rewritten:1,flags:latestAiFlags});
           article = humanised;
         }
         psd('hum','do');pss('hum','Round '+round+' complete ('+newWc+'w)');
@@ -5270,9 +5527,13 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
 
   // If AI score is still above threshold after all rounds, mark as error and stop pipeline
   if(aiBlocked){
-    qi.status='error';qi.aiScore=aiScore;qi.errorReason='AI detection score ('+aiScore+'%) exceeded '+thresh+'% threshold after '+maxRounds+' rewrite attempts';
+    qi.status='human_edit';qi.aiScore=aiScore;qi.generatedAiScore=aiScore;qi.aiThreshold=thresh;
+    qi.errorReason='Needs human edit: AI detection score ('+aiScore+'%) exceeded '+thresh+'% threshold after '+maxRounds+' rewrite attempts';
+    qi.generatedTitle=title;qi.generatedArticle=article;qi.generatedHtml='<div>'+markdownToHtml(article)+'</div>';
+    qi.aiFlags=latestAiFlags.length?latestAiFlags:getAiFlagsFromLastScan(article);
+    qi.aiRewriteHistory=rewriteHistory;
     alog('pipeline','Article blocked by AI detection','Title: '+qi.title+' | AI Score: '+aiScore+'% | Threshold: '+thresh+'%');
-    plog('Pipeline stopped — article AI score ('+aiScore+'%) exceeds maximum allowed ('+thresh+'%). The article will be queued for retry. Consider editing the topic or changing the voice profile to produce more human-sounding content.','ler');
+    plog('Pipeline stopped — article moved to Needs human edit with '+(qi.aiFlags||[]).length+' visible flagged segment'+((qi.aiFlags||[]).length===1?'':'s')+'. It will stay inside the app until re-checked.','ler');
     persist();renderQueue();renderBadges();
     _restoreInactivity();return;
   }
@@ -5503,8 +5764,9 @@ Return JSON:
   E('appr-words').textContent=wc+' words';
   const aiCol=aiScore<=20?'bok':aiScore<=40?'bwa':'ber';
   E('appr-ai').textContent='AI: '+aiScore+'%';E('appr-ai').className='badge '+aiCol;
-  E('appr-voice').textContent=tov?tov.name:'Default';
-  E('appr-body').textContent=article;
+	  E('appr-voice').textContent=tov?tov.name:'Default';
+	  E('appr-body').textContent=article;
+	  renderApprovalQaFlags({aiFlags:latestAiFlags,rewriteHistory,aiScore,aiThreshold:thresh});
 
   // Auto-select author based on TOV (match by name from dynamically fetched authors)
   const authorSel=E('appr-author2');
@@ -5645,7 +5907,7 @@ Return JSON:
   E('approvalcard').scrollIntoView({behavior:'smooth',block:'start'});
 
   // Store context for approval handlers
-  pendingApproval={qi,title,html:linkedHtml,article,aiScore,tov,socialCap,seoTags,seoMeta,seoSlug,seoKeywords,seoOg,seoScore,images:generatedImages,selectedImage:generatedImages.length===1?0:null,imageAltText:imageAltText||title,hsId:null,liDone:false,fbDone:false,rejected:false,targetSite:qi.targetSite||'obtained'};
+  pendingApproval={qi,title,html:linkedHtml,article,aiScore,aiThreshold:thresh,aiFlags:latestAiFlags,rewriteHistory,tov,socialCap,seoTags,seoMeta,seoSlug,seoKeywords,seoOg,seoScore,images:generatedImages,selectedImage:generatedImages.length===1?0:null,imageAltText:imageAltText||title,hsId:null,liDone:false,fbDone:false,rejected:false,targetSite:qi.targetSite||'obtained'};
   // Auto-select publish destination based on queue item's target site
   if(E('appr-dest')){E('appr-dest').value=qi.targetSite==='nevis'?'wordpress':'hubspot';togglePublishDest();}
 
@@ -5954,6 +6216,9 @@ function submitForReview(){
   qi.generatedHtml=pa.html;
   qi.generatedArticle=pa.article;
   qi.generatedAiScore=pa.aiScore;
+  qi.aiThreshold=pa.aiThreshold;
+  qi.aiFlags=pa.aiFlags||[];
+  qi.aiRewriteHistory=pa.rewriteHistory||[];
   qi.generatedSocialCap=pa.socialCap;
   qi.generatedSeoTags=pa.seoTags;
   qi.generatedSeoMeta=pa.seoMeta;
