@@ -2677,12 +2677,30 @@ async function postSaasApi(endpoint, body){
   return {r,d};
 }
 
+function cleanSaasError(message){
+  const raw=String(message||'Unknown error').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  if(/Inactivity Timeout|Too much time has passed/i.test(raw)){
+    return 'The scan took too long for the hosted function. I used fallback topics for now; try again in a moment.';
+  }
+  if(/not authenticated|expired session|invalid session/i.test(raw)){
+    return 'Your session expired. Please sign out, sign in again, and retry the scan.';
+  }
+  if(/not configured|api key|credential/i.test(raw)){
+    return 'A server-side platform integration is missing. Check Settings > Supported integrations.';
+  }
+  return raw.substring(0,220);
+}
+
+async function fastTopicScan(sys,usr,maxTok=2200){
+  return openai(sys,usr,maxTok,{operation:'topic_scan',model:'gpt-4o-mini',temperature:0.7});
+}
+
 async function claude(sys,usr,maxTok=1000){
   const isAdmin=isCurrentUserAdmin();
   const payload={model:MODEL,max_tokens:maxTok,system:[{type:'text',text:sys}],messages:[{role:'user',content:usr}]};
   const {r,d}=await postSaasApi('claude',{clientId:activeClientId,operation:'article_generation',...payload});
   if(!r.ok){
-    const rawMsg=d?.error?.message||d?.message||JSON.stringify(d)||'Unknown API error (HTTP '+r.status+')';
+    const rawMsg=cleanSaasError(d?.error?.message||d?.message||JSON.stringify(d)||'Unknown API error (HTTP '+r.status+')');
     if(!isAdmin && /api key|anthropic_api_key|credential/i.test(rawMsg)){
       throw new Error('Content generation is temporarily unavailable. Please ask your admin to verify the org-wide API keys in Settings.');
     }
@@ -2720,7 +2738,7 @@ async function openai(sys,usr,maxTok=1500,opts={}){
   if(opts.responseFormat==='json')payload.response_format={type:'json_object'};
   const {r,d}=await postSaasApi('openai',{clientId:activeClientId,operation:opts.operation||'article_generation',...payload});
   if(!r.ok){
-    const rawMsg=d?.error?.message||d?.message||JSON.stringify(d)||'Unknown OpenAI error (HTTP '+r.status+')';
+    const rawMsg=cleanSaasError(d?.error?.message||d?.message||JSON.stringify(d)||'Unknown OpenAI error (HTTP '+r.status+')');
     if(!isAdmin && /api key|openai_api_key|credential|authorization/i.test(rawMsg)){
       throw new Error('Content generation is temporarily unavailable. Please ask your admin to verify the org-wide OpenAI API key in Settings.');
     }
@@ -3348,24 +3366,15 @@ async function runScan(){
   try{
     let claudeTopics=[],openaiTopics=[];
     if(activeSite==='nevis'){
-      // Run both models in parallel for Nevis
-      const [claudeRaw,openaiRaw]=await Promise.all([
-        runNevisScan(liveHeadlines),
-        runNevisScanOAI(liveHeadlines,used,today)
-      ]);
-      claudeTopics=parseTopicJSON(claudeRaw);
+      const openaiRaw=await runNevisScanOAI(liveHeadlines,used,today);
       openaiTopics=parseTopicJSON(openaiRaw);
     }else{
       const scanSys='You are a niche fintech content strategist for obtained.com (a fintech company specialising in payment solutions, CASP/VASP licensing, iGaming payments, and investment fund services). You surface hyper-specific, entity-anchored article angles that are NOT covered by mainstream press. Every topic must be anchored to a real named entity. Return ONLY a valid JSON array, no markdown.';
       const scanUsr=buildObtainedScanPrompt(today,liveHeadlines,used);
-      // Run both models in parallel for Obtained
-      const [claudeRaw,openaiRaw]=await Promise.all([
-        claude(scanSys,scanUsr,4096),
-        openaiChat(scanSys,scanUsr,4096)
-      ]);
-      claudeTopics=parseTopicJSON(claudeRaw);
+      const openaiRaw=await fastTopicScan(scanSys,scanUsr,2200);
       openaiTopics=parseTopicJSON(openaiRaw);
     }
+    if(!openaiTopics.length && !claudeTopics.length)throw new Error('The scan returned no usable topics.');
     // Merge: Claude topics first, then unique OpenAI topics not already covered
     const topics=mergeTopics(claudeTopics,openaiTopics,activeSite==='nevis'?'n':'t');
     sd.topics=topics;sd.lastScan=Date.now();persist();
@@ -3374,7 +3383,7 @@ async function runScan(){
   }catch(e){console.error('Scan error:',e);sd.topics=activeSite==='nevis'?nevisFallbackTopics():fallbackTopics();sd.lastScan=Date.now();persist();alog('scan','Topic scan failed — used fallback topics',e.message||'');
     // Show error notice to user
     const errDiv=document.createElement('div');errDiv.className='notice';errDiv.style.cssText='background:#fef2f2;border-color:#fca5a5;color:#991b1b;margin-bottom:12px';
-    errDiv.innerHTML='<strong>Scan error:</strong> '+((e.message||'Unknown error').substring(0,200))+' — showing fallback topics instead. Check Settings for API keys.';
+    errDiv.innerHTML='<strong>Scan error:</strong> '+cleanSaasError(e.message||'Unknown error')+' Showing fallback topics instead.';
     E('btopics').prepend(errDiv);
   }
   sw.style.display='none';E('btopics').style.display='block';
@@ -6414,7 +6423,7 @@ Return JSON array of 12 objects:
 }
 
 async function runNevisScanOAI(liveHeadlines,used,today){
-  return openaiChat(
+  return fastTopicScan(
     'You are a content strategist for NEVISiGaming (nevisigaming.com), the Nevis Gaming Regulation Agency. You create blog content about iGaming regulation. Every topic must be anchored to a real entity, regulation, or event. Return ONLY a valid JSON array, no markdown.',
     `Generate 12 unique article ideas for the NEVISiGaming blog dated ${today}.
 
@@ -6433,7 +6442,7 @@ FOUR VERTICALS — 3 per vertical:
 4. JURISDICTION COMPARISONS — Nevis vs Malta MGA, Gibraltar, Curaçao, Isle of Man, Kahnawake, Alderney
 
 Return JSON array of 12 objects:
-{"id":"n1"-"n12","title":"10-16 word headline","sourceHeadline":"original headline","source":"source name","category":"Nevis Regulation"|"License Grants"|"iGaming Industry"|"Jurisdiction Comparison","trend":"hot"|"warm"|"cool","angle":"1 sentence","uniqueness":1-100,"keywords":["kw1","kw2","kw3"],"namedEntity":"entity","isNews":true|false}`,4096);
+{"id":"n1"-"n12","title":"10-16 word headline","sourceHeadline":"original headline","source":"source name","category":"Nevis Regulation"|"License Grants"|"iGaming Industry"|"Jurisdiction Comparison","trend":"hot"|"warm"|"cool","angle":"1 sentence","uniqueness":1-100,"keywords":["kw1","kw2","kw3"],"namedEntity":"entity","isNews":true|false}`,2200);
 }
 
 // WordPress REST API publishing
