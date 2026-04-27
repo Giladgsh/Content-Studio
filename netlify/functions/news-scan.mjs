@@ -74,7 +74,7 @@ function parseHTML(html, maxItems = 10) {
   return items;
 }
 
-async function fetchSource(source, timeout = 8000) {
+async function fetchSource(source, timeout = 4500) {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);

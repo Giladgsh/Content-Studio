@@ -3292,6 +3292,115 @@ function formatNewsForPrompt(newsData){
   });
   return lines.length>1?lines.join('\n'):'No live headlines available.';
 }
+function withTimeout(promise,ms,message){
+  let timer;
+  const timeout=new Promise((_,reject)=>{
+    timer=setTimeout(()=>reject(new Error(message||'Timed out')),ms);
+  });
+  return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));
+}
+function clearScanNotices(){
+  document.querySelectorAll('#btopics .scan-notice').forEach(el=>el.remove());
+}
+function showScanNotice(message,type='warn'){
+  const host=E('btopics');
+  if(!host)return;
+  clearScanNotices();
+  const div=document.createElement('div');
+  const isError=type==='error';
+  div.className='notice scan-notice';
+  div.style.cssText=isError
+    ?'background:#fef2f2;border-color:#fca5a5;color:#991b1b;margin-bottom:12px'
+    :'background:#fff7ed;border-color:#fed7aa;color:#9a3412;margin-bottom:12px';
+  div.innerHTML='<strong>'+escapeHtml(isError?'Scan note:':'Live headline mode:')+'</strong> '+escapeHtml(message);
+  host.prepend(div);
+}
+function scanCategoryForHeadline(source,title,active){
+  const hay=(source+' '+title).toLowerCase();
+  if(active==='nevis'){
+    if(/licen[cs]|operator|renewal|application|permit/.test(hay))return'License Grants';
+    if(/malta|mga|gibraltar|cura[cç]ao|isle of man|alderney|kahnawake|jurisdiction/.test(hay))return'Jurisdiction Comparison';
+    if(/regulat|aml|kyc|compliance|responsible|authority|commission|law|fine|penalt/.test(hay))return'Nevis Regulation';
+    return'iGaming Industry';
+  }
+  if(/crypto|mica|casp|vasp|token|stablecoin|digital asset|blockchain|eba|esma/.test(hay))return'CASP/VASP';
+  if(/gaming|gambling|casino|betting|sportsbook|igaming|mga|cura[cç]ao|sbc|yogonet|next\.io|calvin/.test(hay))return'iGaming';
+  if(/fund|investment|aifmd|mifid|asset manager|wealth|capital|private equity|vc|venture/.test(hay))return'Investment';
+  return'Fintech';
+}
+function extractEntityFromHeadline(title){
+  const cleaned=String(title||'').replace(/[“”"]/g,'').trim();
+  const beforeDash=cleaned.split(/\s[-–—:]\s/)[0];
+  const caps=beforeDash.match(/\b([A-Z][A-Za-z0-9&.'-]*(?:\s+[A-Z][A-Za-z0-9&.'-]*){0,3})\b/);
+  return (caps&&caps[1])||beforeDash.split(/\s+/).slice(0,3).join(' ')||'Market participants';
+}
+function topicTitleFromHeadline(headline,category,active){
+  const entity=extractEntityFromHeadline(headline);
+  if(active==='nevis'){
+    if(category==='Jurisdiction Comparison')return `${entity}: what the latest market move means for Nevis positioning`;
+    if(category==='License Grants')return `${entity} shows what iGaming operators now need from licensing jurisdictions`;
+    if(category==='Nevis Regulation')return `${entity} puts gaming compliance standards back under the spotlight`;
+    return `${entity} signals a practical shift iGaming operators should watch`;
+  }
+  if(category==='CASP/VASP')return `${entity} highlights the next compliance pressure point for CASP operators`;
+  if(category==='iGaming')return `${entity} reveals a payments and licensing angle iGaming operators may miss`;
+  if(category==='Investment')return `${entity} shows where institutional capital is moving in regulated fintech`;
+  return `${entity} signals a new pressure point for payment and banking infrastructure`;
+}
+function keywordsFromHeadline(headline,category){
+  const stop=new Set(['the','and','for','with','from','that','this','into','over','after','amid','about','latest','new','news','says','will','how','why']);
+  const words=String(headline||'').toLowerCase().replace(/[^a-z0-9\s-]/g,' ').split(/\s+/).filter(w=>w.length>3&&!stop.has(w));
+  const unique=[...new Set(words)].slice(0,3);
+  while(unique.length<3)unique.push(category.toLowerCase().replace('/',' '));
+  return unique;
+}
+function topicsFromHeadlines(newsData,active,used){
+  const usedText=String(used||'').toLowerCase();
+  const rows=[];
+  (newsData?.results||[]).forEach(src=>{
+    (src.items||[]).slice(0,5).forEach(item=>{
+      if(!item.title||usedText.includes(String(item.title).toLowerCase().slice(0,40)))return;
+      rows.push({source:src.source,title:item.title,snippet:item.snippet||'',date:item.date||''});
+    });
+  });
+  const wanted=active==='nevis'
+    ?['Nevis Regulation','License Grants','iGaming Industry','Jurisdiction Comparison']
+    :['Fintech','CASP/VASP','iGaming','Investment'];
+  const buckets=Object.fromEntries(wanted.map(c=>[c,[]]));
+  rows.forEach(row=>{
+    const category=scanCategoryForHeadline(row.source,row.title,active);
+    if(buckets[category])buckets[category].push(row);
+  });
+  rows.forEach(row=>{
+    wanted.forEach(category=>{
+      if(buckets[category].length<3&&!buckets[category].includes(row))buckets[category].push(row);
+    });
+  });
+  const topics=[];
+  wanted.forEach(category=>{
+    buckets[category].slice(0,3).forEach(row=>{
+      const id=(active==='nevis'?'n':'t')+(topics.length+1);
+      const entity=extractEntityFromHeadline(row.title);
+      topics.push({
+        id,
+        title:topicTitleFromHeadline(row.title,category,active),
+        sourceHeadline:row.title,
+        source:row.source,
+        category,
+        trend:/fine|penalt|license|licence|acqui|funding|raises|regulat|mica|ban|launch/i.test(row.title)?'hot':'warm',
+        angle:(active==='nevis'
+          ?`Use this live industry signal to explain how Nevis can position its framework against larger or slower jurisdictions.`
+          :`Use this live industry signal to build a specific, research-led angle for regulated payments, licensing, or market entry decisions.`),
+        uniqueness:82+((topics.length*3)%11),
+        keywords:keywordsFromHeadline(row.title,category),
+        namedEntity:entity,
+        isNews:true,
+        aiSource:'Live headlines'
+      });
+    });
+  });
+  return topics.slice(0,12);
+}
 
 // ── Topic parsing & merging helpers ──
 function parseTopicJSON(raw){
@@ -3408,6 +3517,7 @@ const NMSGS=['Fetching live headlines from IGB, Next.io, SBC News...','Scanning 
 async function runScan(){
   const btn=E('scbtn');btn.disabled=true;
   E('bempty').style.display='none';E('btopics').style.display='none';
+  clearScanNotices();
   const sw=E('scwrap');sw.style.display='block';
   const sc=E('scsteps');sc.innerHTML='';
   selIds.clear();
@@ -3417,7 +3527,7 @@ async function runScan(){
   // Start fetching live news in parallel with the animation
   // Nevis pulls from igaming + regulation + obtained.com blog for cross-reference; Obtained pulls from igaming + fintech + regulation (not its own blog)
   const newsGroups=activeSite==='nevis'?['igaming','regulation','obtained']:['igaming','fintech','regulation'];
-  const newsPromise=fetchNewsHeadlines(newsGroups);
+  const newsPromise=withTimeout(fetchNewsHeadlines(newsGroups),9000,'Live headline fetch timed out');
 
   for(let i=0;i<scanMsgs.length;i++){
     E('ssi'+i).className='ss sa';
@@ -3427,7 +3537,13 @@ async function runScan(){
   }
 
   // Get the news results (should be done by now)
-  const newsData=await newsPromise;
+  let newsData={results:[],totalItems:0};
+  try{
+    newsData=await newsPromise;
+  }catch(e){
+    console.warn('News scan timed out:',e);
+    alog('scan','Live headline fetch timed out','Using stored fallback sources for this scan');
+  }
   const liveHeadlines=formatNewsForPrompt(newsData);
   const sourceCount=newsData.results?newsData.results.filter(r=>r.items&&r.items.length).length:0;
   alog('scan','Fetched live headlines','Sources: '+sourceCount+' | Headlines: '+(newsData.totalItems||0));
@@ -3438,12 +3554,12 @@ async function runScan(){
   try{
     let claudeTopics=[],openaiTopics=[];
     if(activeSite==='nevis'){
-      const openaiRaw=await runNevisScanOAI(liveHeadlines,used,today);
+      const openaiRaw=await withTimeout(runNevisScanOAI(liveHeadlines,used,today),18000,'AI topic shaping timed out');
       openaiTopics=parseTopicJSON(openaiRaw);
     }else{
       const scanSys='You are a niche fintech content strategist for obtained.com (a fintech company specialising in payment solutions, CASP/VASP licensing, iGaming payments, and investment fund services). You surface hyper-specific, entity-anchored article angles that are NOT covered by mainstream press. Every topic must be anchored to a real named entity. Return ONLY a valid JSON array, no markdown.';
       const scanUsr=buildObtainedScanPrompt(today,liveHeadlines,used);
-      const openaiRaw=await fastTopicScan(scanSys,scanUsr,2200);
+      const openaiRaw=await withTimeout(fastTopicScan(scanSys,scanUsr,2200),18000,'AI topic shaping timed out');
       openaiTopics=parseTopicJSON(openaiRaw);
     }
     if(!openaiTopics.length && !claudeTopics.length)throw new Error('The scan returned no usable topics.');
@@ -3452,11 +3568,16 @@ async function runScan(){
     sd.topics=topics;sd.lastScan=Date.now();persist();
     const gptCount=topics.filter(t=>t.aiSource==='GPT-4o').length;
     alog('scan','Topic scan completed','Found '+topics.length+' topics (Claude: '+(topics.length-gptCount)+', GPT-4o: '+gptCount+') for '+(activeSite==='nevis'?'nevisigaming.com':'obtained.com'));
-  }catch(e){console.error('Scan error:',e);sd.topics=activeSite==='nevis'?nevisFallbackTopics():fallbackTopics();sd.lastScan=Date.now();persist();alog('scan','Topic scan failed — used fallback topics',e.message||'');
-    // Show error notice to user
-    const errDiv=document.createElement('div');errDiv.className='notice';errDiv.style.cssText='background:#fef2f2;border-color:#fca5a5;color:#991b1b;margin-bottom:12px';
-    errDiv.innerHTML='<strong>Scan error:</strong> '+cleanSaasError(e.message||'Unknown error')+' Showing fallback topics instead.';
-    E('btopics').prepend(errDiv);
+  }catch(e){console.error('Scan error:',e);
+    const liveTopics=topicsFromHeadlines(newsData,activeSite,used);
+    if(liveTopics.length){
+      sd.topics=liveTopics;sd.lastScan=Date.now();persist();
+      alog('scan','AI topic shaping skipped — used live headline mode',(e.message||'')+' | Topics: '+liveTopics.length);
+      showScanNotice('AI topic shaping took too long, so I built today’s suggestions directly from the live headlines instead. Try Scan now again later for deeper AI-shaped angles.','warn');
+    }else{
+      sd.topics=activeSite==='nevis'?nevisFallbackTopics():fallbackTopics();sd.lastScan=Date.now();persist();alog('scan','Topic scan failed — used fallback topics',e.message||'');
+      showScanNotice(cleanSaasError(e.message||'Unknown error')+' Showing fallback topics instead.','error');
+    }
   }
   sw.style.display='none';E('btopics').style.display='block';
   renderTopics();
