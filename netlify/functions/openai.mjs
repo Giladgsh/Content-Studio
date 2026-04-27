@@ -33,6 +33,12 @@ export default async (req) => {
     const apiKey = process.env.OPENAI_API_KEY || '';
     if (!apiKey) return json({ error: { message: 'OpenAI is not configured for this SaaS environment.' } }, 500);
 
+    if (operation === 'topic_scan') {
+      payload.model = 'gpt-4o-mini';
+      payload.max_tokens = Math.min(Number(payload.max_tokens) || 2200, 2200);
+      payload.temperature = Math.min(Number(payload.temperature) || 0.7, 0.7);
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

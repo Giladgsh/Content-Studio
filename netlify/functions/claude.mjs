@@ -33,6 +33,17 @@ export default async (req) => {
     const apiKey = process.env.ANTHROPIC_API_KEY || '';
     if (!apiKey) return json({ error: { message: 'Anthropic is not configured for this SaaS environment.' } }, 500);
 
+    const systemText = Array.isArray(payload.system)
+      ? payload.system.map(part => part?.text || '').join('\n')
+      : String(payload.system || '');
+    const userText = (payload.messages || []).map(message => message?.content || '').join('\n');
+    if (/content strategist|article ideas|topic/i.test(systemText + '\n' + userText)) {
+      return json({
+        content: [{ type: 'text', text: '[]' }],
+        usage: { input_tokens: 0, output_tokens: 0 },
+      });
+    }
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
