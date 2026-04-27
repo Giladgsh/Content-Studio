@@ -7,6 +7,11 @@ export default async (req) => {
   return json({
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
+    integrations: {
+      openai: !!process.env.OPENAI_API_KEY,
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+      gptzero: !!process.env.GPTZERO_API_KEY,
+    },
   });
 };
 

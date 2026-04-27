@@ -1396,59 +1396,24 @@ html.dark .login-footer{color:#85775E}
 
 <!-- ══ SETTINGS ══ -->
 <div class="view" id="v-settings">
-  <!-- Non-admin notice: API keys are managed by admin only -->
-  <div class="notice non-admin-only" style="margin-bottom:14px">
-    <strong>🔒 API keys are managed centrally by your admin.</strong> You don't need to enter or manage any API credentials — content generation, images, HubSpot, WordPress, and Sapling all run on the admin-configured shared keys. If you see any generation errors, please contact your admin.
+  <div class="notice" style="margin-bottom:14px">
+    <strong>SaaS integrations are managed server-side.</strong> Platform AI keys never appear in the browser. Client publishing connections are shown here as supported integrations and will move into asset setup as the SaaS model expands.
   </div>
   <div class="g2">
     <div>
-      <div class="card admin-only">
-        <div class="ct" style="margin-bottom:12px">API credentials</div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px">Supported integrations</div>
         <div id="settingsSyncStatus" class="notice" style="margin-bottom:12px;display:none"></div>
-        <div class="fi">
-          <label>Anthropic API key <span class="cred-ok" id="clcred">⚠ required</span></label>
-          <input type="password" id="sak" placeholder="sk-ant-..." autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/>
-          <div class="hint">Required — powers all content generation. Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></div>
+        <div id="integrationStatusCards"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn bs" onclick="loadIntegrationStatus()">Refresh status</button>
+          <button class="btn bs" onclick="testGptzeroConnection()">Test GPTZero</button>
+          <span id="gzTestMsg" style="font-size:11px"></span>
         </div>
-        <div class="fi">
-          <label>OpenAI API key <span class="cred-ok" id="oaicred">⚠ required for images</span></label>
-          <input type="password" id="soai" placeholder="sk-..." autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/>
-          <div class="hint">Powers DALL-E image generation (3 images per article). Get one at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a></div>
-        </div>
-        <div class="fi">
-          <label>GPTZero API key <span class="cred-ok" id="gzcred">⚠ optional</span></label>
-          <input type="password" id="sgptz" placeholder="gptzero API key" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/>
-          <div class="hint">Primary AI-content detector. Subscribe at <a href="https://gptzero.me/pricing" target="_blank">gptzero.me/pricing</a> (API tier required). Pipeline uses this to score every generated article; articles above the threshold are re-written until compliant.</div>
-          <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button class="btn bs" onclick="testGptzeroConnection()">⚡ Test GPTZero connection</button>
-            <span id="gzTestMsg" style="font-size:11px"></span>
-          </div>
-        </div>
-        <div class="fi">
-          <label>Sapling AI key <span style="color:var(--text3);font-weight:400">(optional legacy fallback — get free at sapling.ai)</span></label>
-          <input type="password" id="ss" placeholder="sapling_..." autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/>
-          <div class="hint">Legacy fallback. If GPTZero is not configured, the pipeline falls back to a Claude-based AI-score estimate.</div>
-        </div>
-        <div class="fi">
-          <label>Ahrefs API key <span class="cred-ok" id="ahcred">⚠ optional</span></label>
-          <input type="password" id="sahrefs" placeholder="Generate at app.ahrefs.com/account/api-keys" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/>
-          <div class="hint">Enables real search-volume/KD in the wizard, Domain Rating &amp; traffic on competitors, and on-demand rank checks. Uses included API units on your Ahrefs plan.</div>
-          <div id="ahMeter" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;font-size:11px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>API units this cycle</span><span id="ahMeterText" style="font-weight:600">—</span></div>
-            <div class="pb" style="height:6px"><div class="pf" id="ahMeterBar" style="width:0%;background:var(--accent)"></div></div>
-            <div style="margin-top:4px;color:var(--text3)"><span id="ahMeterReset">—</span> · <a href="#" onclick="refreshAhrefsUsage();return false" style="color:var(--accent-deep)">refresh</a></div>
-          </div>
-        </div>
-        <div class="ct" style="margin:16px 0 8px">HubSpot (obtained.com)</div>
-        <div class="fi">
-          <label>HubSpot private app token <span class="cred-ok" id="hscred">⚠ not configured</span></label>
-          <input type="password" id="sht" placeholder="pat-eu1-..." autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/>
-          <div class="hint">Create a Private App at <a href="https://app-eu1.hubspot.com/private-apps" target="_blank">app-eu1.hubspot.com/private-apps</a> with scopes: <code>content</code>, <code>blog-read</code>, <code>files</code>. Copy the Access Token here.</div>
-          <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button class="btn bs" onclick="testHubSpotConnection()">⚡ Test HubSpot connection</button>
-            <span id="hsTestMsg" style="font-size:11px"></span>
-          </div>
-        </div>
+      </div>
+      <div class="card admin-only">
+        <div class="ct" style="margin-bottom:12px">Asset connections</div>
+        <div class="notice" style="margin-bottom:12px">This v35 staging build keeps existing publishing defaults while credentials move to per-client asset setup.</div>
         <div class="fi">
           <label>HubSpot blog ID <span class="cred-ok" id="blcred">✓ 119429700840</span></label>
           <input id="shb" placeholder="119429700840"/>
@@ -1607,6 +1572,7 @@ const SUPABASE_SESSION_KEY='content_studio_supabase_session';
 let _cachedUsers=null; // client-side cache of user list
 let supabaseClient=null;
 let activeClientId='';
+let _integrationStatus=null;
 
 function apiBase(){
   return location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/)?'/api':'/.netlify/functions';
@@ -1618,6 +1584,17 @@ async function loadPublicConfig(){
   if(!r.ok)throw new Error(d.error||'Could not load app configuration');
   if(!d.supabaseUrl||!d.supabaseAnonKey)throw new Error('Supabase is not configured for this deployment');
   return d;
+}
+
+async function loadIntegrationStatus(){
+  try{
+    const cfg=await loadPublicConfig();
+    _integrationStatus=cfg.integrations||{};
+  }catch(e){
+    _integrationStatus={error:e.message||String(e)};
+  }
+  renderIntegrationStatus();
+  return _integrationStatus;
 }
 
 async function getSupabaseClient(){
@@ -1639,9 +1616,10 @@ function authHeaders(){
 // ── API helper ──
 async function userAPI(action,data={}){
   const token=getAuthToken();
-  const body={action,token,...data};
+  const body={action,token,clientId:activeClientId,...data};
   const base=apiBase();
-  const r=await fetch(base+'/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const endpoint=token?'/team':'/users';
+  const r=await fetch(base+endpoint,{method:'POST',headers:token?authHeaders():{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();
   if(!r.ok)throw new Error(d.error||'API error '+r.status);
   return d;
@@ -1978,6 +1956,7 @@ async function handleLogin(e){
     if(!session)throw new Error('Could not load your client access');
     showApp(session);
     await syncSettingsFromServer();
+    await loadIntegrationStatus();
     alog('auth','Signed in',session.name+' ('+session.email+') — role: '+session.role);
     if(typeof renderUserList==='function')renderUserList();
   }catch(err2){
@@ -2127,6 +2106,7 @@ function getResetRequests(){try{return JSON.parse(localStorage.getItem(RESET_REQ
     else {
       // Sync per-user settings from server (also migrates+scrubs on first run)
       await syncSettingsFromServer();
+      await loadIntegrationStatus();
       if(valid.role!==local.role||valid.name!==local.name){
         // Session updated on server — refresh UI
         showApp(valid);
@@ -2681,24 +2661,26 @@ async function hsUploadImage(token,base64Data,fileName){
   }
 }
 
+async function postSaasApi(endpoint, body){
+  let r, raw, d;
+  try{
+    r=await fetch(apiBase()+'/'+endpoint,{
+      method:'POST',
+      headers:authHeaders(),
+      body:JSON.stringify(body)
+    });
+    raw=await r.text();
+  }catch(e){
+    throw new Error('Cannot reach the SaaS API. Refresh the app and try again. Details: '+(e.message||String(e)));
+  }
+  try{d=raw?JSON.parse(raw):{};}catch(e){d={message:raw||('HTTP '+r.status)};}
+  return {r,d};
+}
+
 async function claude(sys,usr,maxTok=1000){
   const isAdmin=isCurrentUserAdmin();
   const payload={model:MODEL,max_tokens:maxTok,system:[{type:'text',text:sys}],messages:[{role:'user',content:usr}]};
-  let r,d;
-
-  let useProxy=location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/);
-  if(useProxy){
-    try{
-      const body={clientId:activeClientId,operation:'article_generation',...payload};
-      r=await fetch('/api/claude',{method:'POST',headers:authHeaders(),body:JSON.stringify(body)});
-      d=await r.json();
-    }catch(e){
-      useProxy=false;
-    }
-  }
-  if(!useProxy){
-    throw new Error('Content generation requires the deployed SaaS API. Please use the Netlify app after Supabase is configured.');
-  }
+  const {r,d}=await postSaasApi('claude',{clientId:activeClientId,operation:'article_generation',...payload});
   if(!r.ok){
     const rawMsg=d?.error?.message||d?.message||JSON.stringify(d)||'Unknown API error (HTTP '+r.status+')';
     if(!isAdmin && /api key|anthropic_api_key|credential/i.test(rawMsg)){
@@ -2716,12 +2698,8 @@ async function claude(sys,usr,maxTok=1000){
 // ── OpenAI Chat (for topic generation alongside Claude) ──
 async function openaiChat(sys,usr,maxTok=1000){
   try{
-    const r=await fetch('/api/openai',{
-      method:'POST',headers:authHeaders(),
-      body:JSON.stringify({clientId:activeClientId,operation:'topic_scan',model:'gpt-4o',max_tokens:maxTok,temperature:0.8,messages:[{role:'system',content:sys},{role:'user',content:usr}]})
-    });
+    const {r,d}=await postSaasApi('openai',{clientId:activeClientId,operation:'topic_scan',model:'gpt-4o',max_tokens:maxTok,temperature:0.8,messages:[{role:'system',content:sys},{role:'user',content:usr}]});
     if(!r.ok)return null;
-    const d=await r.json();
     return d.choices?.[0]?.message?.content||null;
   }catch(e){console.warn('OpenAI chat failed:',e);return null;}
 }
@@ -2740,18 +2718,7 @@ async function openai(sys,usr,maxTok=1500,opts={}){
     messages:[{role:'system',content:sys},{role:'user',content:usr}]
   };
   if(opts.responseFormat==='json')payload.response_format={type:'json_object'};
-  let r,d;
-  let useProxy=location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/);
-  if(useProxy){
-    try{
-      const body={clientId:activeClientId,operation:opts.operation||'article_generation',...payload};
-      r=await fetch('/api/openai',{method:'POST',headers:authHeaders(),body:JSON.stringify(body)});
-      d=await r.json();
-    }catch(e){useProxy=false;}
-  }
-  if(!useProxy){
-    throw new Error('Content generation requires the deployed SaaS API. Please use the Netlify app after Supabase is configured.');
-  }
+  const {r,d}=await postSaasApi('openai',{clientId:activeClientId,operation:opts.operation||'article_generation',...payload});
   if(!r.ok){
     const rawMsg=d?.error?.message||d?.message||JSON.stringify(d)||'Unknown OpenAI error (HTTP '+r.status+')';
     if(!isAdmin && /api key|openai_api_key|credential|authorization/i.test(rawMsg)){
@@ -2773,14 +2740,7 @@ async function openai(sys,usr,maxTok=1500,opts={}){
 // Uses the admin-configured GPTZero API key via /api/gptzero proxy.
 // ────────────────────────────────────────────────────────────────────
 async function gptzeroPredict(documentText){
-  const token=localStorage.getItem(TOKEN_KEY)||'';
-  const base=location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/)?'/api':'/.netlify/functions';
-  const r=await fetch(base+'/gptzero',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'predict',token,document:documentText})
-  });
-  const d=await r.json();
+  const {r,d}=await postSaasApi('gptzero',{action:'predict',clientId:activeClientId,document:documentText});
   if(!r.ok)throw new Error(d.error||('GPTZero error HTTP '+r.status));
   return d.data;
 }
@@ -2869,30 +2829,15 @@ Return ONLY the rewritten sentence.`,
   return {article:working, rewritten, totalFlagged:flagged.length, targeted:toRewrite.length};
 }
 
-function isGptzeroConfigured(){ return !!(S.settings&&S.settings.gptzeroKey); }
+function isGptzeroConfigured(){ return !!(_integrationStatus&&_integrationStatus.gptzero); }
 
 async function testGptzeroConnection(){
   if(!isCurrentUserAdmin()){alert('Only admins can test the GPTZero connection.');return;}
   const msg=E('gzTestMsg');
   if(msg){msg.textContent='';msg.style.color='';}
-  const token=v('sgptz')||S.settings.gptzeroKey||'';
-  if(!token){
-    if(msg){msg.textContent='⚠ No key entered — paste a GPTZero API key first';msg.style.color='#c0392b';}
-    return;
-  }
   if(msg){msg.innerHTML='<span class="sp"></span> Testing…';msg.style.color='var(--text2)';}
-  // We need to save the key first so the proxy can read it from shared settings.
-  // For admin-only test, we'll just POST to /api/gptzero with a flag — but the proxy reads from blob.
-  // Workaround: save the typed key to shared settings (admin already has write access), then test.
   try{
-    if(v('sgptz')){
-      S.settings.gptzeroKey=v('sgptz');
-      await settingsAPI('save',{settings:S.settings});
-    }
-    const token2=localStorage.getItem(TOKEN_KEY)||'';
-    const base=location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/)?'/api':'/.netlify/functions';
-    const r=await fetch(base+'/gptzero',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'testConnection',token:token2})});
-    const d=await r.json();
+    const {r,d}=await postSaasApi('gptzero',{action:'testConnection',clientId:activeClientId});
     if(r.ok){
       if(msg){msg.textContent='✓ Connection OK — GPTZero accepted the key';msg.style.color='var(--green)';}
       alog('settings','GPTZero connection test','OK');
@@ -2908,16 +2853,9 @@ async function testGptzeroConnection(){
 
 // ── DALL-E image generation ──
 async function generateOneImage(prompt){
-  const isDeployed=location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/);
-  if(isDeployed){
-    try{
-      const r=await fetch('/api/dalle',{method:'POST',headers:authHeaders(),body:JSON.stringify({clientId:activeClientId,prompt,n:1,size:'1792x1024'})});
-      const d=await r.json();
-      if(r.ok&&d.images&&d.images.length)return d.images[0];
-      throw new Error(d?.error?.message || 'Image generation failed');
-    }catch(e){}
-  }
-  throw new Error('Image generation requires the deployed SaaS API.');
+  const {r,d}=await postSaasApi('dalle',{clientId:activeClientId,prompt,n:1,size:'1792x1024'});
+  if(r.ok&&d.images&&d.images.length)return d.images[0];
+  throw new Error(d?.error?.message || d?.error || 'Image generation failed');
 }
 
 async function generateImages(prompt){
@@ -6200,6 +6138,45 @@ async function checkPublishedRank(publishedId){
 }
 
 // ── SETTINGS ──
+function escapeHtml(value){
+  return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function renderIntegrationStatus(){
+  const el=document.getElementById('integrationStatusCards');
+  if(!el)return;
+  const s=S.settings||{};
+  const st=_integrationStatus||{};
+  const item=(name,status,detail,kind='server')=>{
+    const ok=status==='connected';
+    const soon=status==='planned';
+    const badge=ok?'<span class="badge bok" style="font-size:9px">Connected</span>':soon?'<span class="badge bwa" style="font-size:9px">Planned</span>':'<span class="badge ber" style="font-size:9px">Needs setup</span>';
+    const accent=ok?'var(--green)':soon?'var(--yellow,#b7791f)':'var(--red)';
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="width:9px;height:9px;border-radius:50%;background:${accent};margin-top:5px;flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+          <strong style="font-size:13px">${name}</strong>${badge}
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px">${detail}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${kind==='server'?'SaaS-side credential, never shown in browser':'Client asset connection'}</div>
+      </div>
+    </div>`;
+  };
+  if(st.error){
+    el.innerHTML=`<div class="notice err">Could not load integration status: ${escapeHtml(st.error)}</div>`;
+    return;
+  }
+  el.innerHTML=[
+    item('OpenAI',st.openai?'connected':'missing','Article drafting, topic scans, SEO helpers, and image generation use the platform OpenAI key.'),
+    item('Anthropic Claude',st.anthropic?'connected':'missing','Used for rewrite, review, and editorial stages in the multi-model workflow.'),
+    item('GPTZero',st.gptzero?'connected':'missing','Primary AI-detection check. If missing, the app falls back to the internal estimate.'),
+    item('HubSpot',s.hsBlog?'connected':'missing',s.hsBlog?'Blog ID '+escapeHtml(String(s.hsBlog))+' is saved. Token migration to asset credentials is next.':'Connect a HubSpot asset during client setup.','asset'),
+    item('WordPress',(s.wpUrl&&s.wpUser)?'connected':'planned','Supported for WordPress assets; credentials will live per client/asset.','asset'),
+    item('LinkedIn / Instagram','planned','Supported integration slots for the SaaS roadmap after website publishing is stable.','asset')
+  ].join('');
+}
+
 function renderSettingsSyncStatus(){
   const el = document.getElementById('settingsSyncStatus');
   if (!el) return;
@@ -6238,6 +6215,7 @@ function applySettingsAdminGate() {
 function loadSettingsUI(){
   // Show the latest sync status banner whenever this UI is rendered
   renderSettingsSyncStatus();
+  loadIntegrationStatus();
   // Apply read-only lock for non-admin users
   applySettingsAdminGate();
   const s=S.settings||{};
