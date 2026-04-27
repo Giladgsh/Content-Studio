@@ -1,0 +1,9 @@
+{
+  "name": "content-studio",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@netlify/blobs": "^8.0.0",
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}
