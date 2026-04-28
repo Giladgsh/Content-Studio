@@ -4,9 +4,9 @@
  */
 
 const SOURCE_LIBRARY = [
-  { id: 'finextra', name: 'Finextra', url: 'https://www.finextra.com/rss/headlines.aspx', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['Fintech'] },
-  { id: 'paymentsjournal', name: 'PaymentsJournal', url: 'https://www.paymentsjournal.com/feed/', type: 'rss', sourceType: 'media', priority: 'secondary', categories: ['Fintech'] },
-  { id: 'the-paypers', name: 'The Paypers', url: 'https://thepaypers.com/rss', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['Fintech'] },
+  { id: 'finextra', name: 'Finextra', url: 'https://www.finextra.com/rss/headlines.aspx', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['Fintech', 'CASP/VASP', 'Investment'] },
+  { id: 'paymentsjournal', name: 'PaymentsJournal', url: 'https://www.paymentsjournal.com/feed/', type: 'rss', sourceType: 'media', priority: 'secondary', categories: ['Fintech', 'CASP/VASP'] },
+  { id: 'the-paypers', name: 'The Paypers', url: 'https://thepaypers.com/rss', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['Fintech', 'CASP/VASP'] },
 
   { id: 'eba', name: 'European Banking Authority', url: 'https://www.eba.europa.eu/rss.xml', type: 'rss', sourceType: 'official_regulator', priority: 'primary', categories: ['Fintech', 'CASP/VASP'] },
   { id: 'esma', name: 'ESMA', url: 'https://www.esma.europa.eu/rss.xml', type: 'rss', sourceType: 'official_regulator', priority: 'primary', categories: ['CASP/VASP', 'Investment'] },

@@ -75,7 +75,9 @@ Official/regulatory:
 - UK FCA
 
 Media:
-- Uses fintech media feeds until a dedicated crypto regulatory/media library is expanded.
+- Finextra
+- PaymentsJournal
+- The Paypers
 
 ### iGaming
 
@@ -99,7 +101,9 @@ Official/regulatory:
 - UK FCA
 
 Media:
-- Not yet strong enough. Needs a dedicated funds/investment source set before this category should be considered production-grade.
+- Finextra
+
+Still not strong enough. Needs a dedicated funds/investment source set before this category should be considered production-grade.
 
 ## Implementation Notes
 

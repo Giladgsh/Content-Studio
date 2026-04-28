@@ -671,6 +671,8 @@ html.dark .login-footer{color:#85775E}
         </select>
         <span style="font-size:11px;color:var(--text2)">Voice:</span>
         <select id="bvs" style="width:140px;font-size:11px" onchange="setAtov(this.value)"></select>
+        <span style="font-size:11px;color:var(--text2)">Brief:</span>
+        <select id="scanCategory" style="width:150px;font-size:11px"></select>
         <button class="btn bs bp" id="scbtn" onclick="runScan()">⟳ Scan now</button>
       </div>
     </div>
@@ -1437,6 +1439,32 @@ html.dark .login-footer{color:#85775E}
           <input type="password" id="swppass" placeholder="Generated in Users → Profile → Application Passwords" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/>
           <div class="hint">Create one in WordPress: Users → Profile → scroll to "Application Passwords" → add name "Content Studio" → copy the generated password</div>
         </div>
+      </div>
+      <div class="card">
+        <div class="ch" style="margin-bottom:10px">
+          <div>
+            <div class="ct">Sources</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">Platform source library plus client suggestions. Daily brief scans can run per category.</div>
+          </div>
+          <select id="srcFilter" style="width:160px;font-size:11px" onchange="renderSources()"></select>
+        </div>
+        <div id="sourceSummary" style="margin-bottom:12px"></div>
+        <div id="sourceEditor" class="editor-admin-only" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:8px">Suggest source</div>
+          <div class="g2" style="margin-bottom:8px">
+            <div class="fi" style="margin:0"><label>Name</label><input id="srcName" placeholder="e.g. Central Bank of Ireland" style="font-size:12px"/></div>
+            <div class="fi" style="margin:0"><label>URL / feed</label><input id="srcUrl" placeholder="https://" style="font-size:12px"/></div>
+          </div>
+          <div class="g2" style="margin-bottom:8px">
+            <div class="fi" style="margin:0"><label>Category</label><select id="srcCat" style="font-size:12px"></select></div>
+            <div class="fi" style="margin:0"><label>Source type</label><select id="srcType" style="font-size:12px"><option value="media">Media</option><option value="official_regulator">Official regulator</option><option value="official_company">Official company</option><option value="competitor">Competitor</option><option value="internal_client">Internal/client</option><option value="data_provider">Data provider</option></select></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn bs bp" onclick="saveSourceSuggestion()">+ Add source</button>
+            <span id="srcMsg" style="font-size:11px"></span>
+          </div>
+        </div>
+        <div id="sourceList"></div>
       </div>
       <div class="card admin-only">
         <div class="ct" style="margin-bottom:10px">Social channels</div>
@@ -3064,6 +3092,15 @@ function renderTovSelects(){
   const at=getAtov();
   const atValid=at&&(!at.sites||!at.sites.length||at.sites.includes(activeSite));
   if(E('atvname'))E('atvname').textContent=atValid&&at?at.name:(filtered[0]?filtered[0].name:'None');
+  renderScanCategoryOptions();
+}
+
+function renderScanCategoryOptions(){
+  const sel=E('scanCategory');if(!sel)return;
+  const current=sel.value||'all';
+  const cats=briefCategories(activeSite);
+  sel.innerHTML='<option value="all">All categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value=[...cats,'all'].includes(current)?current:'all';
 }
 
 function renderTovList(){
@@ -3264,10 +3301,40 @@ Return this exact JSON structure:
 }
 
 // ── NEWS FETCHER ──
-async function fetchNewsHeadlines(groups){
+const SOURCE_CATEGORIES_OBTAINED=['Fintech','CASP/VASP','iGaming','Investment'];
+const SOURCE_CATEGORIES_NEVIS=['Nevis Regulation','License Grants','iGaming Industry','Jurisdiction Comparison'];
+const PLATFORM_SOURCE_LIBRARY=[
+  {id:'finextra',name:'Finextra',url:'https://www.finextra.com/rss/headlines.aspx',type:'media',priority:'primary',categories:['Fintech','CASP/VASP','Investment']},
+  {id:'paymentsjournal',name:'PaymentsJournal',url:'https://www.paymentsjournal.com/feed/',type:'media',priority:'secondary',categories:['Fintech','CASP/VASP']},
+  {id:'the-paypers',name:'The Paypers',url:'https://thepaypers.com/rss',type:'media',priority:'primary',categories:['Fintech','CASP/VASP']},
+  {id:'eba',name:'European Banking Authority',url:'https://www.eba.europa.eu/rss.xml',type:'official_regulator',priority:'primary',categories:['Fintech','CASP/VASP']},
+  {id:'esma',name:'ESMA',url:'https://www.esma.europa.eu/rss.xml',type:'official_regulator',priority:'primary',categories:['CASP/VASP','Investment']},
+  {id:'fca',name:'UK FCA',url:'https://www.fca.org.uk/news/rss.xml',type:'official_regulator',priority:'primary',categories:['Fintech','CASP/VASP','Investment']},
+  {id:'igb',name:'iGaming Business (IGB)',url:'https://www.igamingbusiness.com/feed/',type:'media',priority:'primary',categories:['iGaming','iGaming Industry']},
+  {id:'nextio',name:'Next.io',url:'https://next.io/feed/',type:'media',priority:'primary',categories:['iGaming','iGaming Industry']},
+  {id:'sbc',name:'SBC News',url:'https://www.sbcnews.co.uk/feed/',type:'media',priority:'primary',categories:['iGaming','iGaming Industry']},
+  {id:'yogonet',name:'Yogonet',url:'https://www.yogonet.com/international/rss/last_news',type:'media',priority:'secondary',categories:['iGaming','iGaming Industry']},
+  {id:'calvinayre',name:'CalvinAyre',url:'https://calvinayre.com/feed/',type:'media',priority:'secondary',categories:['iGaming','iGaming Industry']},
+  {id:'gambling-news',name:'GamblingNews.com',url:'https://www.gamblingnews.com/feed/',type:'media',priority:'secondary',categories:['iGaming','iGaming Industry']},
+  {id:'gambling-compliance',name:'GamblingCompliance',url:'https://gamblingcompliance.com/feed',type:'official_regulator',priority:'primary',categories:['iGaming','Nevis Regulation','License Grants','Jurisdiction Comparison']},
+  {id:'obtained-blog',name:'Obtained.com Blog',url:'https://obtained.com/blog/feed/',type:'internal_client',priority:'watch_only',categories:['Fintech','CASP/VASP','iGaming','Investment']}
+];
+function briefCategories(site=activeSite){return site==='nevis'?SOURCE_CATEGORIES_NEVIS:SOURCE_CATEGORIES_OBTAINED;}
+function sourceSuggestions(){if(!S.settings)S.settings={};if(!Array.isArray(S.settings.sourceSuggestions))S.settings.sourceSuggestions=[];return S.settings.sourceSuggestions;}
+function customSourcesForCategory(category){
+  return sourceSuggestions().filter(s=>s.enabled!==false&&(!category||category==='all'||(s.categories||[]).includes(category))).map(s=>({
+    name:s.name,url:s.url,type:s.url&&s.url.includes('/feed')?'rss':'html',sourceType:s.type||'custom',priority:s.priority||'secondary',categories:s.categories||[]
+  }));
+}
+async function fetchNewsHeadlines(groups,opts={}){
   try{
     const base=window.location.hostname==='localhost'?'':'/.netlify/functions';
-    const res=await fetch(base+'/news-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({groups})});
+    const body={groups};
+    if(opts.category)body.category=opts.category;
+    if(opts.categories)body.categories=opts.categories;
+    if(opts.includeOfficial!==undefined)body.includeOfficial=opts.includeOfficial;
+    if(opts.customSources)body.customSources=opts.customSources;
+    const res=await fetch(base+'/news-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!res.ok)return{results:[],totalItems:0};
     return await res.json();
   }catch(e){console.warn('News fetch failed:',e);return{results:[],totalItems:0};}
@@ -3357,7 +3424,7 @@ function keywordsFromHeadline(headline,category){
   while(unique.length<3)unique.push(category.toLowerCase().replace('/',' '));
   return unique;
 }
-function topicsFromHeadlines(newsData,active,used){
+function topicsFromHeadlines(newsData,active,used,onlyCategories=null){
   const usedText=String(used||'').toLowerCase();
   const rows=[];
   (newsData?.results||[]).forEach(src=>{
@@ -3366,12 +3433,13 @@ function topicsFromHeadlines(newsData,active,used){
       rows.push({source:src.source,title:item.title,snippet:item.snippet||'',date:item.date||''});
     });
   });
-  const wanted=active==='nevis'
+  const wanted=(onlyCategories&&onlyCategories.length?onlyCategories:null)||(active==='nevis'
     ?['Nevis Regulation','License Grants','iGaming Industry','Jurisdiction Comparison']
-    :['Fintech','CASP/VASP','iGaming','Investment'];
+    :['Fintech','CASP/VASP','iGaming','Investment']);
   const buckets=Object.fromEntries(wanted.map(c=>[c,[]]));
   rows.forEach(row=>{
-    const category=scanCategoryForHeadline(row.source,row.title,active);
+    let category=scanCategoryForHeadline(row.source,row.title,active);
+    if(!buckets[category]&&wanted.length===1)category=wanted[0];
     if(buckets[category])buckets[category].push(row);
   });
   rows.forEach(row=>{
@@ -3592,7 +3660,13 @@ async function runScan(){
   // Start fetching live news in parallel with the animation
   // Nevis pulls from igaming + regulation + obtained.com blog for cross-reference; Obtained pulls from igaming + fintech + regulation (not its own blog)
   const newsGroups=activeSite==='nevis'?['igaming','regulation','obtained']:['igaming','fintech','regulation'];
-  const newsPromise=withTimeout(fetchNewsHeadlines(newsGroups),9000,'Live headline fetch timed out');
+  const selectedCategory=(E('scanCategory')&&E('scanCategory').value)||'all';
+  const categoryMode=selectedCategory&&selectedCategory!=='all';
+  const newsPromise=withTimeout(fetchNewsHeadlines(newsGroups,{
+    category:categoryMode?selectedCategory:null,
+    includeOfficial:true,
+    customSources:customSourcesForCategory(categoryMode?selectedCategory:null)
+  }),9000,'Live headline fetch timed out');
 
   for(let i=0;i<scanMsgs.length;i++){
     E('ssi'+i).className='ss sa';
@@ -3616,12 +3690,19 @@ async function runScan(){
   const sd=siteData();
   const used=[...(sd.topics||[]).map(t=>t.title),...(sd.queue||[]).map(q=>q.title),...(sd.published||[]).map(p=>p.title)].join(' | ');
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const liveTopics=topicsFromHeadlines(newsData,activeSite,used);
+  const targetCategories=categoryMode?[selectedCategory]:null;
+  const liveTopics=topicsFromHeadlines(newsData,activeSite,used,targetCategories);
   const scanStamp=Date.now();
   if(liveTopics.length){
-    sd.topics=liveTopics;sd.lastScan=scanStamp;persist();
-    alog('scan','Topic scan completed','Built '+liveTopics.length+' topics from '+sourceCount+' live sources. AI enhancement running quietly.');
-    showScanNotice('Built '+liveTopics.length+' usable topics from live sources. AI enhancement will sharpen them quietly if it finishes in time.','success');
+    if(categoryMode){
+      const keep=(sd.topics||[]).filter(t=>t.category!==selectedCategory);
+      sd.topics=[...keep,...liveTopics];
+    }else{
+      sd.topics=liveTopics;
+    }
+    sd.lastScan=scanStamp;persist();
+    alog('scan','Topic scan completed','Built '+liveTopics.length+' '+(categoryMode?selectedCategory:'multi-category')+' topics from '+sourceCount+' live sources. AI enhancement running quietly.');
+    showScanNotice('Built '+liveTopics.length+' usable '+(categoryMode?selectedCategory+' ':'')+'topics from live sources. AI enhancement will sharpen them quietly if it finishes in time.','success');
     enhanceScanTopicsWithAI(activeSite,liveTopics,liveHeadlines,used,today,scanStamp);
   }else{
     sd.topics=activeSite==='nevis'?nevisFallbackTopics():fallbackTopics();sd.lastScan=scanStamp;persist();
@@ -4498,6 +4579,10 @@ const VERTICALS_BY_SITE = {
 };
 
 function canEditCompetitors(){
+  const r=currentSession&&currentSession.role;
+  return r==='admin'||r==='editor';
+}
+function canEditSources(){
   const r=currentSession&&currentSession.role;
   return r==='admin'||r==='editor';
 }
@@ -6692,6 +6777,109 @@ function renderIntegrationStatus(){
   ].join('');
 }
 
+function renderSourceControls(){
+  const cats=briefCategories(activeSite);
+  const filter=E('srcFilter');
+  const srcCat=E('srcCat');
+  const options='<option value="all">All categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(filter){
+    const cur=filter.value||'all';
+    filter.innerHTML=options;
+    filter.value=[...cats,'all'].includes(cur)?cur:'all';
+  }
+  if(srcCat)srcCat.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function sourceBadge(source){
+  const type=source.type||source.sourceType||'media';
+  const label={
+    media:'Media',
+    official_regulator:'Official',
+    official_company:'Company',
+    competitor:'Competitor',
+    internal_client:'Internal',
+    data_provider:'Data'
+  }[type]||type;
+  const cls=type==='official_regulator'?'bok':type==='internal_client'?'bca':type==='competitor'?'bwa':'bgr';
+  return `<span class="badge ${cls}" style="font-size:9px">${label}</span>`;
+}
+
+function renderSources(){
+  renderSourceControls();
+  const filter=(E('srcFilter')&&E('srcFilter').value)||'all';
+  const platform=PLATFORM_SOURCE_LIBRARY.filter(s=>filter==='all'||(s.categories||[]).includes(filter));
+  const custom=sourceSuggestions().filter(s=>filter==='all'||(s.categories||[]).includes(filter));
+  const official=platform.concat(custom).filter(s=>(s.type||s.sourceType)==='official_regulator').length;
+  const summary=E('sourceSummary');
+  if(summary){
+    summary.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="badge bgr">${platform.length} platform</span>
+      <span class="badge bca">${custom.length} client suggested</span>
+      <span class="badge bok">${official} official/regulatory</span>
+    </div>`;
+  }
+  const rows=[...platform.map(s=>({...s,scope:'Platform library'})),...custom.map(s=>({...s,scope:s.scope||'Client suggestion'}))];
+  const list=E('sourceList');if(!list)return;
+  if(!rows.length){list.innerHTML='<div class="empty">No sources for this category yet.</div>';return;}
+  list.innerHTML=rows.map(s=>{
+    const isCustom=!!sourceSuggestions().find(x=>x.id===s.id);
+    const cats=(s.categories||[]).join(', ');
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <strong style="font-size:13px;color:var(--text)">${escapeHtml(s.name)}</strong>
+          ${sourceBadge(s)}
+          <span class="badge bgr" style="font-size:9px">${escapeHtml(s.priority||'secondary')}</span>
+          <span style="font-size:10px;color:var(--text3)">${escapeHtml(s.scope)}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px;word-break:break-all">${escapeHtml(s.url)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${escapeHtml(cats)}</div>
+      </div>
+      ${isCustom&&canEditSources()?`<button class="btn bs bd" style="font-size:10px;padding:4px 8px" onclick="deleteSourceSuggestion('${s.id}')">Remove</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function persistSources(){
+  await settingsAPI('saveSources',{sources:sourceSuggestions()});
+  persistSafe();
+}
+
+async function saveSourceSuggestion(){
+  if(!canEditSources()){alert('Only admins and editors can edit sources.');return;}
+  const name=v('srcName').trim();
+  const urlRaw=v('srcUrl').trim();
+  const category=v('srcCat')||briefCategories(activeSite)[0];
+  const type=v('srcType')||'media';
+  const msg=E('srcMsg');
+  if(!name||!urlRaw){if(msg){msg.textContent='Name and URL required';msg.style.color='var(--red)';}return;}
+  let url=urlRaw;
+  if(!/^https?:\/\//i.test(url))url='https://'+url;
+  try{new URL(url);}catch(e){if(msg){msg.textContent='Invalid URL';msg.style.color='var(--red)';}return;}
+  const list=sourceSuggestions();
+  if(list.some(s=>String(s.url).replace(/\/$/,'')===url.replace(/\/$/,''))){if(msg){msg.textContent='Source already exists';msg.style.color='var(--red)';}return;}
+  list.push({id:'src'+Date.now()+Math.random().toString(36).slice(2,5),name,url,type,categories:[category],priority:type==='official_regulator'?'primary':'secondary',scope:'Client suggestion',suggestedForPlatform:true,enabled:true,createdAt:Date.now()});
+  try{
+    await persistSources();
+    if(E('srcName'))E('srcName').value='';
+    if(E('srcUrl'))E('srcUrl').value='';
+    if(msg){msg.textContent='Saved';msg.style.color='var(--green)';setTimeout(()=>{msg.textContent='';},2200);}
+    renderSources();
+    alog('settings','Source suggested',name+' ('+category+')');
+  }catch(e){
+    if(msg){msg.textContent='Failed to save: '+(e.message||e);msg.style.color='var(--red)';}
+  }
+}
+
+async function deleteSourceSuggestion(id){
+  if(!canEditSources())return;
+  const src=sourceSuggestions().find(s=>s.id===id);
+  if(!src||!confirm('Remove source "'+src.name+'"?'))return;
+  S.settings.sourceSuggestions=sourceSuggestions().filter(s=>s.id!==id);
+  try{await persistSources();renderSources();alog('settings','Source removed',src.name);}
+  catch(e){alert('Failed to remove source: '+(e.message||e));}
+}
+
 function renderSettingsSyncStatus(){
   const el = document.getElementById('settingsSyncStatus');
   if (!el) return;
@@ -6731,6 +6919,7 @@ function loadSettingsUI(){
   // Show the latest sync status banner whenever this UI is rendered
   renderSettingsSyncStatus();
   loadIntegrationStatus();
+  renderSources();
   // Apply read-only lock for non-admin users
   applySettingsAdminGate();
   const s=S.settings||{};
@@ -6834,6 +7023,7 @@ function switchSite(site){
     }
   }
   activeSite=site;
+  renderScanCategoryOptions();
   // Toggle verticals visibility
   if(E('obtainedVerticals'))E('obtainedVerticals').style.display=site==='obtained'?'grid':'none';
   if(E('nevisVerticals'))E('nevisVerticals').style.display=site==='nevis'?'':'none';

@@ -168,6 +168,31 @@ export default async (req) => {
     return respond({ ok: true, competitors });
   }
 
+  // SAVE_SOURCES — admin + editor. Stores client-suggested source preferences in the shared blob
+  // without touching provider credentials or other admin-only settings.
+  if (action === 'saveSources') {
+    const role = auth.user.role;
+    if (role !== 'admin' && role !== 'editor') {
+      return respond({ error: 'Only admins and editors can edit sources' }, 403);
+    }
+    const { sources } = body;
+    if (!Array.isArray(sources)) {
+      return respond({ error: 'sources array required' }, 400);
+    }
+    for (const s of sources) {
+      if (!s || typeof s !== 'object') return respond({ error: 'Invalid source entry' }, 400);
+      if (!s.name || typeof s.name !== 'string') return respond({ error: 'Each source needs a name' }, 400);
+      if (!s.url || typeof s.url !== 'string') return respond({ error: 'Each source needs a URL' }, 400);
+      if (!Array.isArray(s.categories) || !s.categories.length) return respond({ error: 'Each source needs at least one category' }, 400);
+    }
+    const existing = (await loadShared(store)) || {};
+    existing.sourceSuggestions = sources;
+    existing._updatedAt = Date.now();
+    existing._updatedBy = auth.user.email;
+    await store.setJSON(SHARED_KEY, existing);
+    return respond({ ok: true, sources });
+  }
+
   return respond({ error: 'Unknown action' }, 400);
 };
 
