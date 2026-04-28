@@ -3308,11 +3308,14 @@ function showScanNotice(message,type='warn'){
   clearScanNotices();
   const div=document.createElement('div');
   const isError=type==='error';
+  const isSuccess=type==='success';
   div.className='notice scan-notice';
   div.style.cssText=isError
     ?'background:#fef2f2;border-color:#fca5a5;color:#991b1b;margin-bottom:12px'
+    :isSuccess
+      ?'background:#ecfdf5;border-color:#a7f3d0;color:#065f46;margin-bottom:12px'
     :'background:#fff7ed;border-color:#fed7aa;color:#9a3412;margin-bottom:12px';
-  div.innerHTML='<strong>'+escapeHtml(isError?'Scan note:':'Live headline mode:')+'</strong> '+escapeHtml(message);
+  div.innerHTML='<strong>'+escapeHtml(isError?'Scan note:':isSuccess?'Scan complete:':'Live headline mode:')+'</strong> '+escapeHtml(message);
   host.prepend(div);
 }
 function scanCategoryForHeadline(source,title,active){
@@ -3400,6 +3403,68 @@ function topicsFromHeadlines(newsData,active,used){
     });
   });
   return topics.slice(0,12);
+}
+function normalizedScanTopics(topics,active){
+  const wanted=active==='nevis'
+    ?['Nevis Regulation','License Grants','iGaming Industry','Jurisdiction Comparison']
+    :['Fintech','CASP/VASP','iGaming','Investment'];
+  return (topics||[]).slice(0,12).map((t,i)=>({
+    id:(active==='nevis'?'n':'t')+(i+1),
+    title:t.title||topicTitleFromHeadline(t.sourceHeadline||t.namedEntity||'Market signal',t.category||wanted[i%wanted.length],active),
+    sourceHeadline:t.sourceHeadline||t.originalHeadline||'',
+    source:t.source||'',
+    category:wanted.includes(t.category)?t.category:wanted[i%wanted.length],
+    trend:['hot','warm','cool'].includes(t.trend)?t.trend:'warm',
+    angle:t.angle||'Use this signal to build a specific, research-led angle for the target reader.',
+    uniqueness:Math.max(60,Math.min(99,parseInt(t.uniqueness)||84)),
+    keywords:Array.isArray(t.keywords)?t.keywords.slice(0,4):keywordsFromHeadline(t.title||'',t.category||wanted[i%wanted.length]),
+    namedEntity:t.namedEntity||extractEntityFromHeadline(t.title||t.sourceHeadline||'Market participants'),
+    isNews:t.isNews!==false,
+    aiSource:t.aiSource||'AI enhanced'
+  }));
+}
+async function enhanceScanTopicsWithAI(siteKey,baseTopics,liveHeadlines,used,today,scanStamp){
+  if(!baseTopics||!baseTopics.length)return;
+  const active=siteKey;
+  const sys=active==='nevis'
+    ?'You are a senior iGaming content strategist. Tighten existing topic suggestions without adding new unsupported facts. Return only JSON.'
+    :'You are a senior fintech content strategist. Tighten existing topic suggestions without adding new unsupported facts. Return only JSON.';
+  const categories=active==='nevis'
+    ?'Nevis Regulation, License Grants, iGaming Industry, Jurisdiction Comparison'
+    :'Fintech, CASP/VASP, iGaming, Investment';
+  const usr=`Improve these already-built live-headline topic suggestions for ${active==='nevis'?'nevisigaming.com':'obtained.com'}.
+
+Rules:
+- Keep exactly 12 objects if possible.
+- Use only the supplied sourceHeadline/source data; do not invent facts.
+- Make titles more specific and editorial, but preserve the named entity.
+- Keep categories within: ${categories}.
+- Return ONLY a JSON array with: id,title,sourceHeadline,source,category,trend,angle,uniqueness,keywords,namedEntity,isNews.
+- Avoid semantic duplicates with: ${used||'none'}.
+
+Date: ${today}
+
+Live headline context:
+${String(liveHeadlines||'').slice(0,2800)}
+
+Current topic objects:
+${JSON.stringify(baseTopics.slice(0,12))}`;
+  try{
+    const raw=await withTimeout(fastTopicScan(sys,usr,1500),12000,'AI enhancement timed out');
+    const enhanced=normalizedScanTopics(parseTopicJSON(raw),active);
+    if(enhanced.length<8)return;
+    const sd=S.sites&&S.sites[siteKey];
+    if(!sd||sd.lastScan!==scanStamp)return;
+    sd.topics=enhanced;persist();
+    if(activeSite===siteKey&&E('btopics')){
+      renderTopics();
+      showScanNotice('AI enhancement finished. Topics were sharpened from the same live headlines.','success');
+    }
+    alog('scan','AI topic enhancement completed','Updated '+enhanced.length+' topics');
+  }catch(e){
+    console.warn('AI topic enhancement skipped:',e);
+    alog('scan','AI topic enhancement skipped',e.message||'Timed out');
+  }
 }
 
 // ── Topic parsing & merging helpers ──
@@ -3551,33 +3616,17 @@ async function runScan(){
   const sd=siteData();
   const used=[...(sd.topics||[]).map(t=>t.title),...(sd.queue||[]).map(q=>q.title),...(sd.published||[]).map(p=>p.title)].join(' | ');
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  try{
-    let claudeTopics=[],openaiTopics=[];
-    if(activeSite==='nevis'){
-      const openaiRaw=await withTimeout(runNevisScanOAI(liveHeadlines,used,today),18000,'AI topic shaping timed out');
-      openaiTopics=parseTopicJSON(openaiRaw);
-    }else{
-      const scanSys='You are a niche fintech content strategist for obtained.com (a fintech company specialising in payment solutions, CASP/VASP licensing, iGaming payments, and investment fund services). You surface hyper-specific, entity-anchored article angles that are NOT covered by mainstream press. Every topic must be anchored to a real named entity. Return ONLY a valid JSON array, no markdown.';
-      const scanUsr=buildObtainedScanPrompt(today,liveHeadlines,used);
-      const openaiRaw=await withTimeout(fastTopicScan(scanSys,scanUsr,2200),18000,'AI topic shaping timed out');
-      openaiTopics=parseTopicJSON(openaiRaw);
-    }
-    if(!openaiTopics.length && !claudeTopics.length)throw new Error('The scan returned no usable topics.');
-    // Merge: Claude topics first, then unique OpenAI topics not already covered
-    const topics=mergeTopics(claudeTopics,openaiTopics,activeSite==='nevis'?'n':'t');
-    sd.topics=topics;sd.lastScan=Date.now();persist();
-    const gptCount=topics.filter(t=>t.aiSource==='GPT-4o').length;
-    alog('scan','Topic scan completed','Found '+topics.length+' topics (Claude: '+(topics.length-gptCount)+', GPT-4o: '+gptCount+') for '+(activeSite==='nevis'?'nevisigaming.com':'obtained.com'));
-  }catch(e){console.error('Scan error:',e);
-    const liveTopics=topicsFromHeadlines(newsData,activeSite,used);
-    if(liveTopics.length){
-      sd.topics=liveTopics;sd.lastScan=Date.now();persist();
-      alog('scan','AI topic shaping skipped — used live headline mode',(e.message||'')+' | Topics: '+liveTopics.length);
-      showScanNotice('AI topic shaping took too long, so I built today’s suggestions directly from the live headlines instead. Try Scan now again later for deeper AI-shaped angles.','warn');
-    }else{
-      sd.topics=activeSite==='nevis'?nevisFallbackTopics():fallbackTopics();sd.lastScan=Date.now();persist();alog('scan','Topic scan failed — used fallback topics',e.message||'');
-      showScanNotice(cleanSaasError(e.message||'Unknown error')+' Showing fallback topics instead.','error');
-    }
+  const liveTopics=topicsFromHeadlines(newsData,activeSite,used);
+  const scanStamp=Date.now();
+  if(liveTopics.length){
+    sd.topics=liveTopics;sd.lastScan=scanStamp;persist();
+    alog('scan','Topic scan completed','Built '+liveTopics.length+' topics from '+sourceCount+' live sources. AI enhancement running quietly.');
+    showScanNotice('Built '+liveTopics.length+' usable topics from live sources. AI enhancement will sharpen them quietly if it finishes in time.','success');
+    enhanceScanTopicsWithAI(activeSite,liveTopics,liveHeadlines,used,today,scanStamp);
+  }else{
+    sd.topics=activeSite==='nevis'?nevisFallbackTopics():fallbackTopics();sd.lastScan=scanStamp;persist();
+    alog('scan','Topic scan completed with stored fallback','No live headlines returned. Used stored topic templates.');
+    showScanNotice('No live headlines came back from the feeds, so I loaded stored topic templates instead.','warn');
   }
   sw.style.display='none';E('btopics').style.display='block';
   renderTopics();
@@ -5697,9 +5746,9 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
         }
         psd('hum','do');pss('hum','Round '+round+' complete ('+newWc+'w)');
       }else{
-        // Final round still above threshold — BLOCK the article
+        // Final round still above threshold — pause publishing, but keep the draft usable.
         psd('det','de');pss('det',aiScore+'% ✗ BLOCKED — exceeds '+thresh+'%');pprog(55);
-        plog('BLOCKED: After '+maxRounds+' rewrite rounds, AI score is still '+aiScore+'% (threshold: '+thresh+'%). Article cannot be approved.','ler');
+        plog('PUBLISHING BLOCKED: Draft is ready, but after '+maxRounds+' rewrite rounds the AI score is still '+aiScore+'% (threshold: '+thresh+'%).','ler');
         aiBlocked=true;
       }
     }catch(e){
@@ -5710,14 +5759,23 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
 
   // If AI score is still above threshold after all rounds, mark as error and stop pipeline
   if(aiBlocked){
+    E('plstat').textContent='Draft needs edit';E('plstat').className='badge ber';
+    psd('hum','de');pss('hum','Needs human edit');
+    psd('link','dk');pss('link','After edit');
+    psd('seo','dk');pss('seo','After edit');
+    psd('img','dk');pss('img','After edit');
+    psd('appr','dk');pss('appr','After edit');
+    psd('hs','dk');pss('hs','Blocked');
+    psd('soc','dk');pss('soc','Blocked');
     qi.status='human_edit';qi.aiScore=aiScore;qi.generatedAiScore=aiScore;qi.aiThreshold=thresh;
     qi.errorReason='Needs human edit: AI detection score ('+aiScore+'%) exceeded '+thresh+'% threshold after '+maxRounds+' rewrite attempts';
     qi.generatedTitle=title;qi.generatedArticle=article;qi.generatedHtml='<div>'+markdownToHtml(article)+'</div>';
     qi.aiFlags=latestAiFlags.length?latestAiFlags:getAiFlagsFromLastScan(article);
     qi.aiRewriteHistory=rewriteHistory;
     alog('pipeline','Article blocked by AI detection','Title: '+qi.title+' | AI Score: '+aiScore+'% | Threshold: '+thresh+'%');
-    plog('Pipeline stopped — article moved to Needs human edit with '+(qi.aiFlags||[]).length+' visible flagged segment'+((qi.aiFlags||[]).length===1?'':'s')+'. It will stay inside the app until re-checked.','ler');
+    plog('Draft saved — moved to Needs human edit with '+(qi.aiFlags||[]).length+' visible flagged segment'+((qi.aiFlags||[]).length===1?'':'s')+'. It will stay inside the app until re-checked.','ler');
     persist();renderQueue();renderBadges();
+    setTimeout(()=>openHumanEdit(qi.id),250);
     _restoreInactivity();return;
   }
 
