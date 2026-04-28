@@ -3,30 +3,82 @@
  * Returns parsed headlines grouped by source for use in the topic scan prompt.
  */
 
+const SOURCE_LIBRARY = [
+  { id: 'finextra', name: 'Finextra', url: 'https://www.finextra.com/rss/headlines.aspx', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['Fintech'] },
+  { id: 'paymentsjournal', name: 'PaymentsJournal', url: 'https://www.paymentsjournal.com/feed/', type: 'rss', sourceType: 'media', priority: 'secondary', categories: ['Fintech'] },
+  { id: 'the-paypers', name: 'The Paypers', url: 'https://thepaypers.com/rss', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['Fintech'] },
+
+  { id: 'eba', name: 'European Banking Authority', url: 'https://www.eba.europa.eu/rss.xml', type: 'rss', sourceType: 'official_regulator', priority: 'primary', categories: ['Fintech', 'CASP/VASP'] },
+  { id: 'esma', name: 'ESMA', url: 'https://www.esma.europa.eu/rss.xml', type: 'rss', sourceType: 'official_regulator', priority: 'primary', categories: ['CASP/VASP', 'Investment'] },
+  { id: 'fca', name: 'UK FCA', url: 'https://www.fca.org.uk/news/rss.xml', type: 'rss', sourceType: 'official_regulator', priority: 'primary', categories: ['Fintech', 'CASP/VASP', 'Investment'] },
+
+  { id: 'igb', name: 'iGaming Business (IGB)', url: 'https://www.igamingbusiness.com/feed/', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['iGaming'] },
+  { id: 'next-io', name: 'Next.io', url: 'https://next.io/feed/', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['iGaming'] },
+  { id: 'next-io-news', name: 'Next.io News', url: 'https://next.io/news/', type: 'html', sourceType: 'media', priority: 'secondary', categories: ['iGaming'] },
+  { id: 'sbc-news', name: 'SBC News', url: 'https://www.sbcnews.co.uk/feed/', type: 'rss', sourceType: 'media', priority: 'primary', categories: ['iGaming'] },
+  { id: 'yogonet', name: 'Yogonet', url: 'https://www.yogonet.com/international/rss/last_news', type: 'rss', sourceType: 'media', priority: 'secondary', categories: ['iGaming'] },
+  { id: 'calvinayre', name: 'CalvinAyre', url: 'https://calvinayre.com/feed/', type: 'rss', sourceType: 'media', priority: 'secondary', categories: ['iGaming'] },
+  { id: 'gambling-news', name: 'GamblingNews.com', url: 'https://www.gamblingnews.com/feed/', type: 'rss', sourceType: 'media', priority: 'secondary', categories: ['iGaming'] },
+  { id: 'igaming-org', name: 'iGaming.org', url: 'https://igaming.org/news/feed/', type: 'rss', sourceType: 'media', priority: 'secondary', categories: ['iGaming'] },
+  { id: 'gambling-compliance', name: 'GamblingCompliance', url: 'https://gamblingcompliance.com/feed', type: 'rss', sourceType: 'official_regulator', priority: 'primary', categories: ['iGaming'] },
+
+  { id: 'obtained-blog', name: 'Obtained.com Blog', url: 'https://obtained.com/blog/feed/', type: 'rss', sourceType: 'internal_client', priority: 'watch_only', categories: ['Fintech', 'CASP/VASP', 'iGaming', 'Investment'] },
+  { id: 'obtained-blog-alt', name: 'Obtained.com Blog (alt)', url: 'https://obtained.com/feed/', type: 'rss', sourceType: 'internal_client', priority: 'watch_only', categories: ['Fintech', 'CASP/VASP', 'iGaming', 'Investment'] },
+];
+
 const SOURCES = {
-  igaming: [
-    { name: 'iGaming Business (IGB)', url: 'https://www.igamingbusiness.com/feed/', type: 'rss' },
-    { name: 'Next.io', url: 'https://next.io/feed/', type: 'rss' },
-    { name: 'Next.io News', url: 'https://next.io/news/', type: 'html' },
-    { name: 'SBC News', url: 'https://www.sbcnews.co.uk/feed/', type: 'rss' },
-    { name: 'Yogonet', url: 'https://www.yogonet.com/international/rss/last_news', type: 'rss' },
-    { name: 'CalvinAyre', url: 'https://calvinayre.com/feed/', type: 'rss' },
-    { name: 'GamblingNews.com', url: 'https://www.gamblingnews.com/feed/', type: 'rss' },
-    { name: 'iGaming.org', url: 'https://igaming.org/news/feed/', type: 'rss' },
-  ],
-  fintech: [
-    { name: 'Finextra', url: 'https://www.finextra.com/rss/headlines.aspx', type: 'rss' },
-    { name: 'PaymentsJournal', url: 'https://www.paymentsjournal.com/feed/', type: 'rss' },
-    { name: 'The Paypers', url: 'https://thepaypers.com/rss', type: 'rss' },
-  ],
-  obtained: [
-    { name: 'Obtained.com Blog', url: 'https://obtained.com/blog/feed/', type: 'rss' },
-    { name: 'Obtained.com Blog (alt)', url: 'https://obtained.com/feed/', type: 'rss' },
-  ],
-  regulation: [
-    { name: 'GamblingCompliance', url: 'https://gamblingcompliance.com/feed', type: 'rss' },
-  ]
+  igaming: SOURCE_LIBRARY.filter(s => s.categories.includes('iGaming') && s.sourceType === 'media'),
+  fintech: SOURCE_LIBRARY.filter(s => s.categories.includes('Fintech') && s.sourceType === 'media'),
+  obtained: SOURCE_LIBRARY.filter(s => s.sourceType === 'internal_client'),
+  regulation: SOURCE_LIBRARY.filter(s => s.sourceType === 'official_regulator'),
 };
+
+const CATEGORY_ALIASES = {
+  fintech: 'Fintech',
+  'financial institutions': 'Fintech',
+  casp: 'CASP/VASP',
+  vasp: 'CASP/VASP',
+  crypto: 'CASP/VASP',
+  igaming: 'iGaming',
+  gaming: 'iGaming',
+  investment: 'Investment',
+  funds: 'Investment',
+};
+
+function normalizeCategory(category) {
+  const raw = String(category || '').trim();
+  if (!raw) return '';
+  const lower = raw.toLowerCase();
+  return CATEGORY_ALIASES[lower] || raw;
+}
+
+function uniqueSources(sources) {
+  const seen = new Set();
+  return sources.filter(source => {
+    if (!source || !source.url || seen.has(source.url)) return false;
+    seen.add(source.url);
+    return true;
+  });
+}
+
+function sourcesForCategories(categories, { includeOfficial = true, includeInternal = false } = {}) {
+  const cats = categories.map(normalizeCategory).filter(Boolean);
+  const matched = SOURCE_LIBRARY.filter(source => {
+    if (source.priority === 'exclude') return false;
+    if (!includeInternal && source.sourceType === 'internal_client') return false;
+    if (!includeOfficial && source.sourceType === 'official_regulator') return false;
+    return source.categories.some(category => cats.includes(category));
+  });
+  const media = matched.filter(source => source.sourceType !== 'official_regulator');
+  const official = matched.filter(source => source.sourceType === 'official_regulator');
+  const ordered = [];
+  for (const category of cats) {
+    ordered.push(...media.filter(source => source.categories.includes(category) && source.priority === 'primary'));
+    ordered.push(...official.filter(source => source.categories.includes(category)));
+    ordered.push(...media.filter(source => source.categories.includes(category) && source.priority !== 'primary'));
+  }
+  return uniqueSources(ordered);
+}
 
 function parseRSS(xml, maxItems = 15) {
   const items = [];
@@ -106,17 +158,31 @@ export default async (req) => {
 
   try {
     const body = req.method === 'POST' ? await req.json() : {};
-    // Which source groups to fetch: 'all', 'igaming', 'fintech', 'obtained', 'regulation'
+    // Which source groups to fetch: 'all', 'igaming', 'fintech', 'obtained', 'regulation'.
+    // New source model path: pass category/category[] to scan one content category at a time.
     const groups = body.groups || ['igaming', 'fintech', 'obtained', 'regulation'];
+    const categories = []
+      .concat(body.category || [])
+      .concat(Array.isArray(body.categories) ? body.categories : [])
+      .map(normalizeCategory)
+      .filter(Boolean);
+    const includeOfficial = body.includeOfficial !== false;
+    const includeInternal = !!body.includeInternal;
     // Optional: extra custom source URLs
     const customSources = body.customSources || [];
 
     // Gather all sources to fetch
     let allSources = [];
-    for (const g of groups) {
-      if (SOURCES[g]) allSources.push(...SOURCES[g]);
+    if (categories.length) {
+      allSources.push(...sourcesForCategories(categories, { includeOfficial, includeInternal }));
+    } else {
+      for (const g of groups) {
+        if (g === 'all') allSources.push(...SOURCE_LIBRARY.filter(s => s.sourceType !== 'internal_client'));
+        else if (SOURCES[g]) allSources.push(...SOURCES[g]);
+      }
     }
     allSources.push(...customSources.map(s => ({ name: s.name || s.url, url: s.url, type: s.type || 'rss' })));
+    allSources = uniqueSources(allSources);
 
     // Fetch all in parallel with timeout
     const results = await Promise.allSettled(
@@ -127,7 +193,26 @@ export default async (req) => {
     const totalItems = output.reduce((acc, r) => acc + r.items.length, 0);
 
     return Response.json(
-      { results: output, totalItems, fetchedAt: new Date().toISOString() },
+      {
+        results: output,
+        totalItems,
+        fetchedAt: new Date().toISOString(),
+        sourceModel: {
+          mode: categories.length ? 'category' : 'legacy_groups',
+          categories,
+          includeOfficial,
+          sourceCount: allSources.length,
+          sources: allSources.map(s => ({
+            id: s.id || null,
+            name: s.name,
+            url: s.url,
+            type: s.type,
+            sourceType: s.sourceType || 'custom',
+            priority: s.priority || 'secondary',
+            categories: s.categories || [],
+          })),
+        },
+      },
       { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } }
     );
   } catch (e) {

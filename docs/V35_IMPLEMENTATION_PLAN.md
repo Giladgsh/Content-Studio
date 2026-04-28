@@ -59,10 +59,20 @@ Then move per-asset settings into Supabase:
 
 - content categories
 - competitors
+- source library and category source preferences
 - tone profiles
 - publishing rules
 - approval workflow
 - client-owned integration credentials
+
+## Phase 4a - Source Model
+
+- Platform source library provides approved default sources.
+- Client/asset/category preferences can enable, prioritize, watch, or exclude sources.
+- User-added sources become platform-library suggestions and can be reviewed later.
+- Daily briefs run per category by default to reduce token usage and keep evidence focused.
+- Regulated categories include official/regulatory sources when available.
+- See `docs/SOURCE_MODEL.md`.
 
 ## Phase 5 - Usage and Billing Foundation
 

@@ -13,6 +13,7 @@ select
     "manage_credentials",
     "manage_billing",
     "manage_competitors",
+    "manage_sources",
     "manage_tone_profiles",
     "generate_content",
     "approve_content",

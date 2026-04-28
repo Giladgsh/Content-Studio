@@ -16,9 +16,9 @@ function platformRole(role) {
 
 function defaultPermissions(role) {
   if (role === 'platform_owner' || role === 'client_admin') {
-    return ['manage_users', 'manage_assets', 'manage_credentials', 'manage_competitors', 'manage_tone_profiles', 'generate_content', 'approve_content', 'publish_content'];
+    return ['manage_users', 'manage_assets', 'manage_credentials', 'manage_competitors', 'manage_sources', 'manage_tone_profiles', 'generate_content', 'approve_content', 'publish_content'];
   }
-  if (role === 'editor') return ['generate_content', 'approve_content', 'publish_content'];
+  if (role === 'editor') return ['manage_sources', 'generate_content', 'approve_content', 'publish_content'];
   if (role === 'writer') return ['generate_content'];
   if (role === 'reviewer') return ['approve_content'];
   return [];
