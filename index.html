@@ -4805,34 +4805,93 @@ function findQ(qid){
   }
   return null;
 }
+function humanEditStats(q){
+  const flags=q.aiFlags||[];
+  const score=q.generatedAiScore??q.aiScore??'—';
+  const threshold=q.aiThreshold||S.settings.th||20;
+  const high=flags.filter(f=>(parseInt(f.probability)||0)>=90).length;
+  return {flags,score,threshold,high};
+}
+function selectHumanFlag(qid,index){
+  const q=findQ(qid);const ta=E('humanEditArticle');if(!q||!ta)return;
+  const flag=(q.aiFlags||[])[index];const text=(flag?.text||'').trim();
+  if(!text){ta.focus();return;}
+  const article=ta.value;
+  let pos=article.indexOf(text);
+  if(pos<0){
+    const probe=text.slice(0,Math.min(80,text.length));
+    pos=probe?article.indexOf(probe):-1;
+  }
+  if(pos>=0){
+    const end=Math.min(article.length,pos+text.length);
+    ta.focus();
+    ta.setSelectionRange(pos,end);
+    ta.scrollTop=Math.max(0,(pos/article.length)*ta.scrollHeight-180);
+  }else{
+    ta.focus();
+    const msg=E('humanEditMsg');
+    if(msg){msg.textContent='I could not locate that exact segment after edits. Use the text in the flag card as the guide.';msg.style.color='var(--text3)';}
+  }
+}
 
 function openHumanEdit(qid){
   const q=findQ(qid);if(!q)return;
   const overlay=document.createElement('div');
   overlay.id='humanEditOverlay';
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px';
-  const flags=q.aiFlags||[];
-  overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;width:min(980px,96vw);max-height:92vh;overflow:auto;padding:22px;box-shadow:var(--shadow-lg)">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.58);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px';
+  const {flags,score,threshold,high}=humanEditStats(q);
+  overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(1360px,98vw);max-height:94vh;overflow:hidden;box-shadow:var(--shadow-lg);display:flex;flex-direction:column">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:22px 24px 14px;border-bottom:1px solid var(--border)">
       <div>
         <div class="ct" style="margin-bottom:4px">Needs human edit</div>
-        <h3 style="font-size:20px;margin:0">${escapeHtml(q.generatedTitle||q.title)}</h3>
-        <div style="font-size:12px;color:var(--text2);margin-top:4px">AI score ${q.generatedAiScore||q.aiScore||'—'}% · threshold ${q.aiThreshold||S.settings.th||20}% · edit flagged sections, then re-check.</div>
+        <h3 style="font-size:22px;line-height:1.15;margin:0;max-width:980px">${escapeHtml(q.generatedTitle||q.title)}</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--text2)">
+          <span class="badge ber">AI score ${escapeHtml(score)}%</span>
+          <span class="badge bgr">Target ${escapeHtml(threshold)}% or lower</span>
+          <span class="badge bwa">${flags.length} flagged segment${flags.length===1?'':'s'}</span>
+          ${high?`<span class="badge ber">${high} high-confidence</span>`:''}
+        </div>
       </div>
       <button class="btn bs" onclick="document.getElementById('humanEditOverlay')?.remove()">Close</button>
     </div>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px">
-      <div>
-        <textarea id="humanEditArticle" rows="22" style="font-size:13px;line-height:1.55;font-family:var(--font)">${escapeHtml(q.generatedArticle||'')}</textarea>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:0;min-height:0;overflow:hidden">
+      <div style="padding:18px 20px 20px;min-width:0;display:flex;flex-direction:column;gap:12px;min-height:0">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+          <div style="border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg)">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)">First pass</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:4px">Select the highest flags, then rewrite those paragraphs in your own structure.</div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg)">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)">Keep facts</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:4px">Do not change names, numbers, jurisdictions, dates, or legal claims.</div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg)">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)">Re-check</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:4px">When it passes, the article returns to the queue and continues from this draft.</div>
+          </div>
+        </div>
+        <textarea id="humanEditArticle" rows="24" style="font-size:15px;line-height:1.62;font-family:var(--font);min-height:58vh;resize:vertical">${escapeHtml(q.generatedArticle||'')}</textarea>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn bp" id="humanRecheckBtn" onclick="recheckHumanEdit('${qid}')">Re-check article</button>
           <button class="btn bs" onclick="exportQueueArticleDoc('${qid}')">Export Word doc</button>
           <span id="humanEditMsg" style="font-size:12px;color:var(--text3)"></span>
         </div>
       </div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;max-height:560px;overflow:auto">
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px">Flagged segments</div>
-        ${flags.length?flags.map((f,i)=>`<div style="font-size:11px;color:var(--text2);padding:8px 0;border-bottom:1px solid var(--border)"><strong>${i+1}. ${escapeHtml(f.type||'segment')} ${f.probability?escapeHtml(f.probability)+'%':''}</strong><br>${escapeHtml((f.text||'').slice(0,360))}${(f.text||'').length>360?'...':''}${f.reason?`<div style="color:var(--text3);margin-top:4px">Reason: ${escapeHtml(f.reason)}</div>`:''}</div>`).join(''):'<div style="font-size:11px;color:var(--text3)">No segment-level flags were returned. Edit paragraphs that feel too uniform or generic.</div>'}
+      <div style="background:var(--bg2);border-left:1px solid var(--border);padding:16px;overflow:auto;max-height:calc(94vh - 98px)">
+        <div style="font-size:13px;font-weight:800;margin-bottom:4px">Flagged segments</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Use these as a task list. Click Select to jump to the matching text in the draft.</div>
+        ${flags.length?flags.map((f,i)=>{
+          const p=parseInt(f.probability)||0;
+          const color=p>=90?'#991b1b':p>=70?'#9a3412':'var(--text2)';
+          return `<div style="font-size:12px;color:var(--text2);padding:12px;margin-bottom:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface)">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px">
+              <strong style="color:${color}">${i+1}. ${escapeHtml(f.type||'segment')} ${f.probability?escapeHtml(f.probability)+'%':''}</strong>
+              <button class="btn bs" style="font-size:10px;padding:4px 8px" onclick="selectHumanFlag('${qid}',${i})">Select</button>
+            </div>
+            <div style="line-height:1.45">${escapeHtml((f.text||'').slice(0,420))}${(f.text||'').length>420?'...':''}</div>
+            ${f.reason?`<div style="color:var(--text3);margin-top:7px;font-size:11px">Reason: ${escapeHtml(f.reason)}</div>`:''}
+          </div>`;
+        }).join(''):'<div style="font-size:12px;color:var(--text3);padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface)">No segment-level flags were returned. Edit paragraphs that feel too uniform, generic, or evenly structured.</div>'}
       </div>
     </div>
   </div>`;
@@ -4863,7 +4922,10 @@ async function recheckHumanEdit(qid){
       q.status='human_edit';
       q.errorReason='Needs human edit: AI detection score ('+score+'%) still exceeds '+thresh+'% threshold';
       persist();renderQueue();
-      if(msg){msg.textContent='Still blocked at '+score+'%. Flags refreshed; keep editing and re-check.';msg.style.color='var(--red)';}
+      document.getElementById('humanEditOverlay')?.remove();
+      openHumanEdit(qid);
+      const nextMsg=E('humanEditMsg');
+      if(nextMsg){nextMsg.textContent='Still blocked at '+score+'%. Flags refreshed; keep editing and re-check.';nextMsg.style.color='var(--red)';}
     }
   }catch(e){
     if(msg){msg.textContent='Re-check failed: '+(e.message||e);msg.style.color='var(--red)';}
