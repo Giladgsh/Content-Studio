@@ -561,6 +561,379 @@ html.dark .login-footer{color:#85775E}
 .login-bottom a{font-size:11px;color:rgba(244,234,213,0.45);text-decoration:none;transition:color .15s}
 .login-bottom a:hover{color:rgba(244,234,213,0.85)}
 .login-bottom .copyright{font-size:11px;color:rgba(244,234,213,0.28)}
+
+/* ══════════════════════════════════════════════════════════════
+   FINMP SAAS SHELL — v36 visual direction
+   ══════════════════════════════════════════════════════════════ */
+@font-face{
+  font-family:FinMPInter;
+  font-style:normal;
+  font-weight:100 900;
+  font-display:swap;
+  src:url("https://finmp-contentapp-website.netlify.app/_next/static/media/e4af272ccee01ff0-s.p.woff2") format("woff2");
+}
+
+:root{
+  --ink-base:#05060f;
+  --ink-surface:#11132b;
+  --ink-elevated:#161937;
+  --ink-line:#1f2244;
+  --ink-line-strong:#2a2e55;
+  --finmp-brand:#1b17e5;
+  --finmp-brand-hover:#3d3af0;
+  --finmp-violet:#7a5bff;
+  --finmp-peach:#ffc9a3;
+  --finmp-success:#22c58a;
+  --cream-base:#f6f4ed;
+  --cream-surface:#ffffff;
+  --cream-warm:#efebdf;
+  --cream-line:#e2ddcd;
+  --cream-line-strong:#cfc8b2;
+  --cream-ink:#0e0f1f;
+  --cream-soft:#3f4255;
+  --cream-muted:#7a7e92;
+  --shell-width:286px;
+  --font:FinMPInter,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --display:FinMPInter,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --heading:FinMPInter,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --radius:16px;
+  --radius-lg:18px;
+  --radius-xl:24px;
+  --accent:var(--finmp-brand);
+  --accent-soft:rgba(27,23,229,0.1);
+  --accent-deep:var(--finmp-brand-hover);
+  --blue:var(--finmp-brand);
+  --blue-bg:rgba(27,23,229,0.1);
+  --blue-text:var(--finmp-brand);
+}
+
+html.light{
+  --bg:var(--cream-base);
+  --bg2:#fbf9f2;
+  --bg3:var(--cream-warm);
+  --surface:var(--cream-surface);
+  --text:var(--cream-ink);
+  --text2:var(--cream-soft);
+  --text3:var(--cream-muted);
+  --border:var(--cream-line);
+  --border2:var(--cream-line-strong);
+  --border3:rgba(27,23,229,0.25);
+  --shadow-sm:0 1px 2px rgba(14,15,31,0.05);
+  --shadow:0 20px 40px -28px rgba(14,15,31,0.22);
+  --shadow-md:0 24px 60px -28px rgba(14,15,31,0.18),0 0 0 1px rgba(14,15,31,0.06);
+  --shadow-lg:0 30px 90px -44px rgba(14,15,31,0.26);
+}
+
+html.dark{
+  --bg:var(--ink-base);
+  --bg2:var(--ink-surface);
+  --bg3:var(--ink-elevated);
+  --surface:rgba(17,19,43,0.78);
+  --text:#f5f6fa;
+  --text2:#9098b0;
+  --text3:#5c6280;
+  --border:var(--ink-line);
+  --border2:var(--ink-line-strong);
+  --border3:rgba(122,91,255,0.55);
+  --shadow-sm:0 20px 60px -36px rgba(0,0,0,0.7);
+  --shadow:0 30px 100px -58px rgba(122,91,255,0.5);
+  --shadow-md:0 30px 120px -50px rgba(122,91,255,0.45);
+  --shadow-lg:0 35px 130px -48px rgba(27,23,229,0.52);
+}
+
+body{
+  background:
+    radial-gradient(circle at 12% -10%, rgba(27,23,229,0.22), transparent 31rem),
+    radial-gradient(circle at 82% 0%, rgba(122,91,255,0.16), transparent 28rem),
+    var(--bg);
+  font-feature-settings:"ss01","cv11";
+}
+
+.topbar{
+  width:var(--shell-width);
+  height:100vh;
+  position:fixed;
+  inset:0 auto 0 0;
+  z-index:100;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:18px;
+  padding:22px 16px;
+  background:rgba(5,6,15,0.92);
+  border-right:1px solid var(--ink-line);
+  border-bottom:0;
+  box-shadow:none;
+  overflow-y:auto;
+  backdrop-filter:blur(18px);
+}
+html.light .topbar{
+  background:rgba(255,255,255,0.88);
+  border-right-color:var(--cream-line);
+  box-shadow:16px 0 60px -48px rgba(14,15,31,0.32);
+}
+.brand{
+  padding:4px 8px 10px;
+  margin:0;
+  border-right:0;
+  display:grid;
+  gap:10px;
+  color:var(--text);
+}
+.brand a{display:inline-flex;align-items:center;width:max-content}
+.brand img{height:28px !important;margin:0 !important;filter:brightness(0) invert(1) !important}
+html.light .brand img{filter:none !important}
+.brand span{
+  display:block;
+  width:100%;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--surface);
+  color:var(--text) !important;
+  font-size:15px !important;
+  font-weight:650 !important;
+  letter-spacing:0;
+}
+.brand span:before{
+  content:'Product';
+  display:block;
+  margin-bottom:4px;
+  color:var(--text3);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+.nav{
+  display:grid;
+  gap:5px;
+  overflow:visible;
+}
+.nb{
+  width:100%;
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  padding:10px 12px;
+  border:1px solid transparent;
+  border-radius:999px;
+  background:transparent;
+  color:rgba(245,246,250,0.62);
+  text-align:left;
+  text-transform:none;
+  letter-spacing:0;
+  font-size:14px;
+  font-weight:560;
+}
+html.light .nb{color:var(--cream-soft)}
+.nb:hover,.nb.on{
+  color:#fff;
+  background:var(--ink-surface);
+  border-color:var(--ink-line-strong);
+}
+html.light .nb:hover,html.light .nb.on{
+  color:var(--cream-ink);
+  background:rgba(27,23,229,0.06);
+  border-color:rgba(27,23,229,0.22);
+}
+.nb.on{box-shadow:0 0 24px rgba(27,23,229,0.28)}
+.nbadge{
+  margin-left:auto;
+  min-width:22px;
+  height:22px;
+  display:inline-grid;
+  place-items:center;
+  padding:0 7px;
+  background:var(--finmp-brand);
+  color:#fff;
+}
+.topbar-actions{
+  margin-top:auto !important;
+  margin-left:0 !important;
+  display:grid !important;
+  gap:9px !important;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--surface);
+}
+#loggedInUser{
+  color:var(--text) !important;
+  font-size:14px !important;
+  font-weight:650;
+}
+.topbar .btn.bs,.theme-toggle{
+  width:100%;
+  justify-content:center;
+  color:var(--text) !important;
+  border-color:var(--border2) !important;
+  background:transparent !important;
+  border-radius:999px !important;
+}
+.content{
+  max-width:none;
+  margin:0 0 0 var(--shell-width);
+  padding:28px 28px 80px;
+}
+.view.on{animation:viewFade .22s ease-out}
+.card{
+  border-radius:18px;
+  border-color:var(--border);
+  box-shadow:var(--shadow-sm);
+}
+.card:hover{border-color:var(--border2)}
+.ct{
+  color:var(--text3);
+  font-size:12px;
+  letter-spacing:.18em;
+}
+h1,h2,h3{letter-spacing:-.035em}
+.btn{border-radius:999px}
+.bp{
+  background:var(--finmp-brand);
+  border-color:var(--finmp-brand);
+  color:#fff;
+  box-shadow:0 8px 30px -6px rgba(27,23,229,0.45);
+}
+.bp:hover{
+  background:var(--finmp-brand-hover);
+  border-color:var(--finmp-brand-hover);
+}
+.studio-hero{
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 340px;
+  gap:22px;
+  min-height:260px;
+  padding:30px;
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(27,23,229,0.22), transparent 22rem),
+    radial-gradient(circle at 82% 12%, rgba(122,91,255,0.16), transparent 18rem),
+    var(--surface);
+  box-shadow:var(--shadow-md);
+}
+.studio-hero:after{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,0.06) 1px,transparent 0);
+  background-size:24px 24px;
+  opacity:.68;
+}
+html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.07) 1px,transparent 0)}
+.studio-hero>*{position:relative;z-index:1}
+.studio-eyebrow{
+  margin:0 0 14px;
+  color:var(--text3);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+}
+.studio-h1{
+  max-width:760px;
+  margin:0;
+  color:var(--text);
+  font-size:clamp(42px,5vw,72px);
+  line-height:.96;
+  letter-spacing:-.04em;
+  font-weight:650;
+}
+.studio-gradient{
+  background:linear-gradient(135deg,var(--finmp-brand),var(--finmp-violet) 58%,var(--finmp-peach) 110%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.studio-lead{
+  max-width:680px;
+  margin:18px 0 0;
+  color:var(--text2);
+  font-size:17px;
+  line-height:1.6;
+}
+.studio-side{display:grid;gap:12px}
+.studio-mini,.studio-metric,.studio-panel,.studio-screen-card{
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--surface);
+  box-shadow:var(--shadow-sm);
+}
+.studio-mini{padding:16px}
+.studio-mini span,.studio-metric span{
+  display:block;
+  color:var(--text3);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+.studio-mini strong,.studio-metric strong{
+  display:block;
+  margin-top:8px;
+  color:var(--text);
+  font-size:30px;
+  letter-spacing:-.03em;
+}
+.studio-grid{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:18px;
+  margin-top:18px;
+}
+.studio-metrics{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  grid-column:1/-1;
+}
+.studio-metric{min-height:112px;padding:16px}
+.studio-metric small{
+  display:block;
+  margin-top:8px;
+  color:var(--green-text);
+  font-size:12px;
+}
+.studio-panel{padding:18px}
+.studio-panel h2,.studio-screen-card h2{
+  margin:0;
+  color:var(--text);
+  font-size:13px;
+  font-weight:760;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+.studio-panel p,.studio-screen-card p{margin:6px 0 0;color:var(--text2);font-size:13px}
+.studio-wide{grid-column:span 8}
+.studio-narrow{grid-column:span 4}
+.studio-screen-card{padding:24px}
+.studio-screen-card h1{
+  margin:0 0 10px;
+  color:var(--text);
+  font-size:clamp(30px,4vw,48px);
+  line-height:1.02;
+}
+.studio-screen-card .g3{margin-top:18px}
+@media(max-width:1100px){
+  .topbar{width:248px}
+  .content{margin-left:248px}
+  .studio-hero{grid-template-columns:1fr}
+  .studio-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .studio-wide,.studio-narrow{grid-column:1/-1}
+}
+@media(max-width:820px){
+  .topbar{position:static;width:auto;height:auto}
+  .nav{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .content{margin-left:0;padding:18px}
+  .studio-metrics{grid-template-columns:1fr}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -632,31 +1005,80 @@ html.dark .login-footer{color:#85775E}
 
 <!-- TOP BAR -->
 <div class="topbar" id="appTopbar" style="display:none">
-  <div class="brand"><a href="https://obtained.com" target="_blank" style="display:inline-flex;align-items:center;text-decoration:none"><img src="https://obtained.com/hubfs/logo.svg" alt="Obtained" style="height:18px;margin-right:10px;filter:brightness(0) invert(1)"></a><span style="color:rgba(255,255,255,0.45);font-weight:400;font-size:12px;border-left:1px solid rgba(255,255,255,0.12);padding-left:10px">Content Studio</span></div>
+  <div class="brand"><a href="https://finmp-contentapp-website.netlify.app/" target="_blank" style="display:inline-flex;align-items:center;text-decoration:none"><img src="https://finmp-contentapp-website.netlify.app/finmp-logo.png" alt="FinMP" style="height:18px;margin-right:10px;filter:brightness(0) invert(1)"></a><span>Content Studio</span></div>
   <nav class="nav">
-    <button class="nb on" id="nb-brief" onclick="nav('brief')">Content brief</button>
-    <button class="nb" id="nb-wizard" onclick="nav('wizard')">+ Add your own topic</button>
+    <button class="nb on" id="nb-dashboard" onclick="nav('dashboard')">Dashboard</button>
+    <button class="nb" id="nb-brief" onclick="nav('brief')">Daily brief</button>
+    <button class="nb" id="nb-sources" onclick="nav('sources')">Sources</button>
+    <button class="nb" id="nb-pipeline" onclick="nav('pipeline')">Content pipeline</button>
     <button class="nb" id="nb-queue" onclick="nav('queue')">Queue <span class="nbadge" id="qbadge">0</span></button>
-    <button class="nb" id="nb-pipeline" onclick="nav('pipeline')">Pipeline</button>
+    <button class="nb" id="nb-wizard" onclick="nav('wizard')">Add topic</button>
     <button class="nb" id="nb-tov" onclick="nav('tov')">Voice profiles <span class="nbadge" id="tvbadge">0</span></button>
     <button class="nb" id="nb-comp" onclick="nav('comp')">Competitors <span class="nbadge" id="cbadge">0</span></button>
+    <button class="nb" id="nb-assets" onclick="nav('assets')">Assets</button>
+    <button class="nb" id="nb-team" onclick="nav('team')">Team</button>
     <button class="nb" id="nb-published" onclick="nav('published')">Published</button>
-    <button class="nb" id="nb-log" onclick="nav('log')">Activity log</button>
     <button class="nb" id="nb-settings" onclick="nav('settings')">Settings</button>
+    <button class="nb" id="nb-log" onclick="nav('log')">Activity log</button>
   </nav>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+  <div class="topbar-actions" style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <span id="loggedInUser" style="font-size:11px;color:rgba(255,255,255,0.45);white-space:nowrap"></span>
     <button class="btn bs" onclick="handleLogout()" style="font-size:10px;padding:4px 10px;color:rgba(255,255,255,0.55);border-color:rgba(255,255,255,0.15)">Sign out</button>
     <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Toggle dark/light mode" style="background:none;border:1px solid rgba(255,255,255,0.15);color:#fff;padding:4px 8px;border-radius:8px;cursor:pointer;font-size:14px">
-      <span id="themeIcon">☀️</span>
+      <span id="themeIcon">Light</span>
     </button>
   </div>
 </div>
 
 <div class="content" id="appContent" style="display:none">
 
+<!-- ══ DASHBOARD ══ -->
+<div class="view on" id="v-dashboard">
+  <section class="studio-hero">
+    <div>
+      <p class="studio-eyebrow">AI content intelligence for regulated teams</p>
+      <h1 class="studio-h1">Command center for <span class="studio-gradient">content, risk, and distribution.</span></h1>
+      <p class="studio-lead">A calmer executive view of readiness, quality blockers, source health, and channel momentum across client assets.</p>
+    </div>
+    <div class="studio-side">
+      <div class="studio-mini"><span>Ready for approval</span><strong id="dashReady">0</strong></div>
+      <div class="studio-mini"><span>AI score median</span><strong id="dashAi">—</strong></div>
+      <div class="studio-mini"><span>Source coverage</span><strong id="dashSources">—</strong></div>
+    </div>
+  </section>
+  <section class="studio-grid">
+    <div class="studio-metrics">
+      <div class="studio-metric"><span>Generated</span><strong id="dashGenerated">0</strong><small>Total queued content</small></div>
+      <div class="studio-metric"><span>Published</span><strong id="dashPublished">0</strong><small id="dashPublishedHint">Published articles</small></div>
+      <div class="studio-metric"><span>Needs edit</span><strong id="dashHumanEdit">0</strong><small style="color:var(--amber-text)">AI / compliance blockers</small></div>
+      <div class="studio-metric"><span>Usage estimate</span><strong id="dashUsage">$—</strong><small>Platform AI cost placeholder</small></div>
+    </div>
+    <article class="studio-panel studio-wide">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px">
+        <div>
+          <h2>Throughput</h2>
+          <p>Generated, approved, and published volume by operating stage.</p>
+        </div>
+        <span class="badge bse" id="dashHealth">Healthy</span>
+      </div>
+      <svg class="chart" viewBox="0 0 820 260" role="img" aria-label="Content throughput">
+        <g stroke="var(--border)" stroke-width="1"><path d="M40 50H790M40 105H790M40 160H790M40 215H790"/></g>
+        <path d="M40 198 C112 172 152 182 210 140 C284 86 330 128 402 96 C480 60 520 92 590 70 C672 44 724 64 790 38" fill="none" stroke="var(--finmp-brand)" stroke-width="5" stroke-linecap="round"/>
+        <path d="M40 218 C118 202 160 210 224 174 C294 132 346 158 416 134 C494 110 544 130 612 112 C682 94 732 100 790 82" fill="none" stroke="var(--finmp-violet)" stroke-width="4" stroke-linecap="round"/>
+        <path d="M40 226 C110 220 172 224 236 206 C308 184 370 192 442 178 C520 162 580 170 650 154 C716 140 754 146 790 132" fill="none" stroke="var(--finmp-peach)" stroke-width="4" stroke-linecap="round"/>
+        <g fill="var(--text3)" font-size="12"><text x="40" y="248">Mon</text><text x="172" y="248">Tue</text><text x="310" y="248">Wed</text><text x="448" y="248">Thu</text><text x="586" y="248">Fri</text><text x="724" y="248">Sat</text></g>
+      </svg>
+    </article>
+    <article class="studio-panel studio-narrow">
+      <h2>Attention</h2>
+      <p>Work that needs review before distribution.</p>
+      <div style="margin-top:12px" id="dashAttention"></div>
+    </article>
+  </section>
+</div>
+
 <!-- ══ DAILY BRIEF ══ -->
-<div class="view on" id="v-brief">
+<div class="view" id="v-brief">
   <div class="card">
     <div class="ch">
       <div>
@@ -1401,6 +1823,98 @@ html.dark .login-footer{color:#85775E}
   </div>
 </div>
 
+<!-- ══ SOURCES ══ -->
+<div class="view" id="v-sources">
+  <div class="studio-screen-card" style="margin-bottom:18px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap">
+      <div>
+        <div class="ct" style="margin-bottom:8px">Sources</div>
+        <h1>Governed source library for platform and client use.</h1>
+        <p>Platform sources can be suggested by clients, reviewed by admins, and overridden by client, asset, and category settings.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn bs">Import CSV / XLSX</button>
+        <button class="btn bs bp" onclick="E('srcName')&&E('srcName').focus()">Add source</button>
+      </div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch" style="margin-bottom:10px">
+        <div>
+          <div class="ct">Available sources</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">Platform library plus client suggestions. Daily brief scans can run per category.</div>
+        </div>
+        <select id="srcFilter" style="width:180px;font-size:11px" onchange="renderSources()"></select>
+      </div>
+      <div id="sourceSummary" style="margin-bottom:12px"></div>
+      <div id="sourceList"></div>
+    </div>
+    <div>
+      <div class="card editor-admin-only">
+        <div class="ct" style="margin-bottom:12px">Suggest source</div>
+        <div class="fi"><label>Name</label><input id="srcName" placeholder="e.g. Central Bank of Ireland" style="font-size:12px"/></div>
+        <div class="fi"><label>URL / feed</label><input id="srcUrl" placeholder="https://" style="font-size:12px"/></div>
+        <div class="g2" style="margin-bottom:8px">
+          <div class="fi" style="margin:0"><label>Category</label><select id="srcCat" style="font-size:12px"></select></div>
+          <div class="fi" style="margin:0"><label>Source type</label><select id="srcType" style="font-size:12px"><option value="media">Media</option><option value="official_regulator">Official regulator</option><option value="official_company">Official company</option><option value="competitor">Competitor</option><option value="internal_client">Internal/client</option><option value="data_provider">Data provider</option></select></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn bs bp" onclick="saveSourceSuggestion()">Add source</button>
+          <span id="srcMsg" style="font-size:11px"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px">Upload fields</div>
+        <div class="g2">
+          <div class="notice">Source name</div><div class="notice">URL / feed URL</div>
+          <div class="notice">Category</div><div class="notice">Source type</div>
+          <div class="notice">Priority</div><div class="notice">Evidence type</div>
+          <div class="notice">Asset</div><div class="notice">Client</div>
+          <div class="notice">Suggested for platform</div><div class="notice">Notes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ASSETS ══ -->
+<div class="view" id="v-assets">
+  <div class="studio-screen-card">
+    <div class="ct" style="margin-bottom:8px">Assets</div>
+    <h1>Client channels and publishing targets.</h1>
+    <p>Website, HubSpot blog, WordPress, LinkedIn, Instagram, and future channels can carry separate source, voice, and approval rules.</p>
+    <div class="g3" style="margin-top:18px">
+      <div class="card card-sm"><div class="ct">obtained.com</div><h3 style="margin-top:8px">HubSpot blog</h3><p style="color:var(--text2);font-size:13px">Connected to the current publishing flow.</p><span class="badge bse" style="margin-top:10px">Connected</span></div>
+      <div class="card card-sm"><div class="ct">WordPress</div><h3 style="margin-top:8px">nevisigaming.com</h3><p style="color:var(--text2);font-size:13px">Supported by existing settings and ready for asset-level setup.</p><span class="badge brt" style="margin-top:10px">Setup</span></div>
+      <div class="card card-sm"><div class="ct">Social</div><h3 style="margin-top:8px">LinkedIn / Instagram</h3><p style="color:var(--text2);font-size:13px">Planned channels for approved captions and later scheduling.</p><span class="badge bca" style="margin-top:10px">Planned</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TEAM ══ -->
+<div class="view" id="v-team">
+  <div class="studio-screen-card" style="margin-bottom:18px">
+    <div class="ct" style="margin-bottom:8px">Team</div>
+    <h1>Users, roles, and approval chains.</h1>
+    <p>Client admins will manage users and approval permissions here. For this staging build, the existing user management tools remain under Settings.</p>
+  </div>
+  <div class="card">
+    <div class="ch">
+      <div>
+        <div class="ct">Team preview</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Live user list is still rendered from the Settings user management section.</div>
+      </div>
+      <button class="btn bs bp" onclick="nav('settings')">Open user settings</button>
+    </div>
+    <div class="g3">
+      <div class="stat"><div class="sv">Admin</div><div class="sl2">Full platform and client control</div></div>
+      <div class="stat"><div class="sv">Editor</div><div class="sl2">Can create, edit, and suggest sources</div></div>
+      <div class="stat"><div class="sv">Reviewer</div><div class="sl2">Approves compliance and publishing gates</div></div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ SETTINGS ══ -->
 <div class="view" id="v-settings">
   <div class="notice" style="margin-bottom:14px">
@@ -1439,32 +1953,6 @@ html.dark .login-footer{color:#85775E}
           <input type="password" id="swppass" placeholder="Generated in Users → Profile → Application Passwords" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/>
           <div class="hint">Create one in WordPress: Users → Profile → scroll to "Application Passwords" → add name "Content Studio" → copy the generated password</div>
         </div>
-      </div>
-      <div class="card">
-        <div class="ch" style="margin-bottom:10px">
-          <div>
-            <div class="ct">Sources</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Platform source library plus client suggestions. Daily brief scans can run per category.</div>
-          </div>
-          <select id="srcFilter" style="width:160px;font-size:11px" onchange="renderSources()"></select>
-        </div>
-        <div id="sourceSummary" style="margin-bottom:12px"></div>
-        <div id="sourceEditor" class="editor-admin-only" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
-          <div style="font-size:12px;font-weight:700;margin-bottom:8px">Suggest source</div>
-          <div class="g2" style="margin-bottom:8px">
-            <div class="fi" style="margin:0"><label>Name</label><input id="srcName" placeholder="e.g. Central Bank of Ireland" style="font-size:12px"/></div>
-            <div class="fi" style="margin:0"><label>URL / feed</label><input id="srcUrl" placeholder="https://" style="font-size:12px"/></div>
-          </div>
-          <div class="g2" style="margin-bottom:8px">
-            <div class="fi" style="margin:0"><label>Category</label><select id="srcCat" style="font-size:12px"></select></div>
-            <div class="fi" style="margin:0"><label>Source type</label><select id="srcType" style="font-size:12px"><option value="media">Media</option><option value="official_regulator">Official regulator</option><option value="official_company">Official company</option><option value="competitor">Competitor</option><option value="internal_client">Internal/client</option><option value="data_provider">Data provider</option></select></div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn bs bp" onclick="saveSourceSuggestion()">+ Add source</button>
-            <span id="srcMsg" style="font-size:11px"></span>
-          </div>
-        </div>
-        <div id="sourceList"></div>
       </div>
       <div class="card admin-only">
         <div class="ct" style="margin-bottom:10px">Social channels</div>
@@ -1970,6 +2458,7 @@ function showApp(session){
       switchSite(first);
     }
   }
+  renderDashboard();
 }
 
 async function handleLogin(e){
@@ -3050,14 +3539,55 @@ async function fetchSocial(){
 function nav(id){
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
-  E('v-'+id).classList.add('on');E('nb-'+id).classList.add('on');
+  const view=E('v-'+id), tab=E('nb-'+id);
+  if(view)view.classList.add('on');
+  if(tab)tab.classList.add('on');
+  if(id==='dashboard')renderDashboard();
   if(id==='published')renderPublished();
   if(id==='queue')renderQueue();
   if(id==='tov'){renderTovList();renderTovSelects();}
   if(id==='log')renderActivityLog();
+  if(id==='sources')renderSources();
   if(id==='settings'){loadSettingsUI();renderUserList();}
   if(id==='wizard'){wzOpen();}
   if(id==='comp'){compOpen();}
+}
+
+function renderDashboard(){
+  const sd=siteData();
+  const queue=sd.queue||[];
+  const published=sd.published||[];
+  const ready=queue.filter(q=>q.status==='review'||q.status==='done').length;
+  const human=queue.filter(q=>q.status==='human_edit'||q.status==='error').length;
+  const scores=queue.concat(published).map(x=>Number(x.aiScore??x.generatedAiScore)).filter(n=>Number.isFinite(n));
+  const sorted=scores.slice().sort((a,b)=>a-b);
+  const median=sorted.length?sorted[Math.floor(sorted.length/2)]+'%':'—';
+  const platformSources=(typeof PLATFORM_SOURCE_LIBRARY!=='undefined'?PLATFORM_SOURCE_LIBRARY:[]).length;
+  const customSources=sourceSuggestions().length;
+  const allSources=platformSources+customSources;
+  const attention=[
+    {title:'Needs human edit',meta:human+' drafts blocked by AI or generation checks',cls:human?'ber':'bse',label:human?'Blocker':'Clear'},
+    {title:'Approval queue',meta:ready+' items ready or approved',cls:ready?'bwa':'bgr',label:ready?'Review':'Empty'},
+    {title:'Source library',meta:allSources+' configured or suggested sources',cls:allSources?'bse':'bwa',label:allSources?'Covered':'Setup'}
+  ];
+  if(E('dashReady'))E('dashReady').textContent=ready;
+  if(E('dashAi'))E('dashAi').textContent=median;
+  if(E('dashSources'))E('dashSources').textContent=allSources?Math.min(99,Math.round((allSources/(allSources+3))*100))+'%':'—';
+  if(E('dashGenerated'))E('dashGenerated').textContent=queue.length;
+  if(E('dashPublished'))E('dashPublished').textContent=published.length;
+  if(E('dashPublishedHint'))E('dashPublishedHint').textContent=published.filter(x=>x.publishedAt>Date.now()-7*86400000).length+' this week';
+  if(E('dashHumanEdit'))E('dashHumanEdit').textContent=human;
+  if(E('dashUsage'))E('dashUsage').textContent='$'+Math.max(0,Math.round((queue.length*2.8)+(published.length*1.4)));
+  if(E('dashHealth')){
+    E('dashHealth').textContent=human?'Needs review':'Healthy';
+    E('dashHealth').className='badge '+(human?'brt':'bse');
+  }
+  if(E('dashAttention')){
+    E('dashAttention').innerHTML=attention.map(a=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div><strong style="display:block;font-size:14px">${a.title}</strong><span style="display:block;font-size:12px;color:var(--text2);margin-top:3px">${a.meta}</span></div>
+      <span class="badge ${a.cls}" style="font-size:9px">${a.label}</span>
+    </div>`).join('');
+  }
 }
 
 // ── TOV ──
@@ -7399,7 +7929,7 @@ function toggleTheme(){
   html.classList.remove('light','dark');
   html.classList.add(isDark?'light':'dark');
   localStorage.setItem('obtained_theme',isDark?'light':'dark');
-  E('themeIcon').textContent=isDark?'☀️':'🌙';
+  E('themeIcon').textContent=isDark?'Dark mode':'Light mode';
 }
 function initTheme(){
   const saved=localStorage.getItem('obtained_theme');
@@ -7407,7 +7937,7 @@ function initTheme(){
   const theme=saved||prefer;
   document.documentElement.classList.remove('light','dark');
   document.documentElement.classList.add(theme);
-  if(E('themeIcon'))E('themeIcon').textContent=theme==='dark'?'🌙':'☀️';
+  if(E('themeIcon'))E('themeIcon').textContent=theme==='dark'?'Light mode':'Dark mode';
 }
 initTheme();
 
