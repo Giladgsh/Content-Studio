@@ -7373,7 +7373,7 @@ function renderIntegrationStatus(){
     item('Anthropic Claude',st.anthropic?'connected':'missing','Used for rewrite, review, and editorial stages in the multi-model workflow.'),
     item('GPTZero',st.gptzero?'connected':'missing','Primary AI-detection check. If missing, the app falls back to the internal estimate.'),
     item('HubSpot',s.hsBlog?'connected':'missing',s.hsBlog?'Blog ID '+escapeHtml(String(s.hsBlog))+' is saved. Token migration to asset credentials is next.':'Connect a HubSpot asset during client setup.','asset'),
-    item('WordPress',(s.wpUrl&&s.wpUser)?'connected':'planned','Supported for WordPress assets; credentials will live per client/asset.','asset'),
+    item('WordPress',st.wordpress?'connected':'missing',st.wordpress?'nevisigaming.com publishing is configured server-side.':'Add WP_URL, WP_USER, and WP_PASS in Netlify environment variables.','asset'),
     item('LinkedIn / Instagram','planned','Supported integration slots for the SaaS roadmap after website publishing is stable.','asset')
   ].join('');
 }
@@ -7888,13 +7888,17 @@ async function approveWP(){
   const modeLabel=wpPubMode==='publish'?'published post':'draft';
   stat.textContent='Creating '+modeLabel+'...';stat.style.color='var(--blue)';
   psd('hs','dr');pss('hs','Creating WordPress '+modeLabel+'...');plog('Creating WordPress '+modeLabel+' on nevisigaming.com...','lin');
-  const wpUrl=(cfg.wpUrl||'').replace(/\/+$/,'').replace(/\/wp-admin\/?$/i,'');
+  const isDeployed=location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/);
+  const wpUrl=(cfg.wpUrl||'https://www.nevisigaming.com').replace(/\/+$/,'').replace(/\/wp-admin\/?$/i,'');
   const wpUser=cfg.wpUser||'';
   const wpPass=cfg.wpPass||'';
-  if(!wpUrl||!wpUser||!wpPass){
-    stat.textContent='WordPress credentials not configured — go to Settings';stat.style.color='var(--red)';
+  if(!isDeployed&&(!wpUrl||!wpUser||!wpPass)){
+    stat.textContent='WordPress credentials not configured for local testing';stat.style.color='var(--red)';
     btn.disabled=false;if(E('skip-wp-btn'))E('skip-wp-btn').disabled=false;return;
   }
+  const wpProxyBody=(extra)=>JSON.stringify(extra);
+  const wpProxyHeaders=()=>authHeaders();
+  const directAuthHeader=!isDeployed&&wpUser&&wpPass?('Basic '+btoa(wpUser+':'+wpPass)):'';
   try{
     // Upload image if selected
     let featuredMediaId=0;
@@ -7908,8 +7912,8 @@ async function approveWP(){
         // Use proxy to avoid CORS — send base64 to server, server uploads to WP
         const imgRes=await fetch('/api/wordpress',{
           method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({wpUrl,wpUser,wpPass,endpoint:'/wp-json/wp/v2/media',isMediaUpload:true,fileBase64:imgB64,fileName:fname,altText})
+          headers:wpProxyHeaders(),
+          body:wpProxyBody({endpoint:'/wp-json/wp/v2/media',isMediaUpload:true,fileBase64:imgB64,fileName:fname,altText})
         });
         const imgJson=await imgRes.json();
         if(imgRes.ok&&imgJson.id){featuredMediaId=imgJson.id;plog('Image uploaded via proxy — media ID: '+imgJson.id,'lok');}
@@ -8002,15 +8006,14 @@ async function approveWP(){
       const tagIds=[];
       for(const tagName of wpTags){
         try{
-          const authHeader='Basic '+btoa(wpUser+':'+wpPass);
           // Search existing tags
           const sUrl=wpUrl+'/wp-json/wp/v2/tags?search='+encodeURIComponent(tagName);
           let tRes,tData;
           if(location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/)){
-            const r=await fetch('/api/wordpress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wpUrl,wpUser,wpPass,endpoint:'/wp-json/wp/v2/tags?search='+encodeURIComponent(tagName),method:'GET'})});
+            const r=await fetch('/api/wordpress',{method:'POST',headers:wpProxyHeaders(),body:wpProxyBody({endpoint:'/wp-json/wp/v2/tags?search='+encodeURIComponent(tagName),method:'GET'})});
             tData=await r.json();tRes={ok:r.ok};
           }else{
-            const r=await fetch(sUrl,{headers:{'Authorization':authHeader}});
+            const r=await fetch(sUrl,{headers:{'Authorization':directAuthHeader}});
             tData=await r.json();tRes={ok:r.ok};
           }
           const exact=Array.isArray(tData)?tData.find(t=>(t.name||'').toLowerCase()===tagName.toLowerCase()):null;
@@ -8019,10 +8022,10 @@ async function approveWP(){
             // Create new tag
             let cRes,cData;
             if(location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/)){
-              const r=await fetch('/api/wordpress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wpUrl,wpUser,wpPass,endpoint:'/wp-json/wp/v2/tags',payload:{name:tagName}})});
+              const r=await fetch('/api/wordpress',{method:'POST',headers:wpProxyHeaders(),body:wpProxyBody({endpoint:'/wp-json/wp/v2/tags',payload:{name:tagName}})});
               cData=await r.json();cRes={ok:r.ok};
             }else{
-              const r=await fetch(wpUrl+'/wp-json/wp/v2/tags',{method:'POST',headers:{'Content-Type':'application/json','Authorization':authHeader},body:JSON.stringify({name:tagName})});
+              const r=await fetch(wpUrl+'/wp-json/wp/v2/tags',{method:'POST',headers:{'Content-Type':'application/json','Authorization':directAuthHeader},body:JSON.stringify({name:tagName})});
               cData=await r.json();cRes={ok:r.ok};
             }
             if(cRes.ok&&cData.id)tagIds.push(cData.id);
@@ -8034,17 +8037,16 @@ async function approveWP(){
       plog('Resolved '+tagIds.length+'/'+wpTags.length+' WordPress tags','lok');
     }
     plog('POST body: '+JSON.stringify({title:postBody.title,status:postBody.status,slug:wpSlug,tags:postBody.tags?.length||0,featured_media:featuredMediaId}),'ldm');
-    const isDeployed=location.protocol.startsWith('http')&&!location.hostname.match(/^(localhost|127\.)/);
     let res,data;
     if(isDeployed){
       // Use serverless proxy
-      const r=await fetch('/api/wordpress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wpUrl,wpUser,wpPass,endpoint:'/wp-json/wp/v2/posts',payload:postBody})});
+      const r=await fetch('/api/wordpress',{method:'POST',headers:wpProxyHeaders(),body:wpProxyBody({endpoint:'/wp-json/wp/v2/posts',payload:postBody})});
       data=await r.json();res={ok:r.ok,status:r.status};
     }else{
       // Direct call
       const r=await fetch(wpUrl+'/wp-json/wp/v2/posts',{
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Basic '+btoa(wpUser+':'+wpPass)},
+        headers:{'Content-Type':'application/json','Authorization':directAuthHeader},
         body:JSON.stringify(postBody)
       });
       data=await r.json();res={ok:r.ok,status:r.status};
@@ -8072,10 +8074,10 @@ async function approveWP(){
         let patchRes,patchData;
         const patchPayload={meta:yoastMeta};
         if(isDeployed){
-          const pr=await fetch('/api/wordpress',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wpUrl,wpUser,wpPass,endpoint:'/wp-json/wp/v2/posts/'+data.id,payload:patchPayload,method:'PUT'})});
+          const pr=await fetch('/api/wordpress',{method:'POST',headers:wpProxyHeaders(),body:wpProxyBody({endpoint:'/wp-json/wp/v2/posts/'+data.id,payload:patchPayload,method:'PUT'})});
           patchData=await pr.json();patchRes={ok:pr.ok};
         }else{
-          const pr=await fetch(wpUrl+'/wp-json/wp/v2/posts/'+data.id,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':authHeader},body:JSON.stringify(patchPayload)});
+          const pr=await fetch(wpUrl+'/wp-json/wp/v2/posts/'+data.id,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':directAuthHeader},body:JSON.stringify(patchPayload)});
           patchData=await pr.json();patchRes={ok:pr.ok};
         }
         // Check if Yoast fields actually stuck
