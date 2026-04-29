@@ -1091,8 +1091,8 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
           <option value="obtained">obtained.com (HubSpot)</option>
           <option value="nevis">nevisigaming.com (WordPress)</option>
         </select>
-        <span style="font-size:11px;color:var(--text2)">Voice:</span>
-        <select id="bvs" style="width:140px;font-size:11px" onchange="setAtov(this.value)"></select>
+        <span style="font-size:11px;color:var(--text2)">Angle style:</span>
+        <select id="bvs" style="width:140px;font-size:11px" onchange="setAtov(this.value)" title="Shapes AI topic enhancement and article drafting. Facts still come from sources."></select>
         <span style="font-size:11px;color:var(--text2)">Brief:</span>
         <select id="scanCategory" style="width:150px;font-size:11px"></select>
         <button class="btn bs bp" id="scbtn" onclick="runScan()">⟳ Scan now</button>
@@ -1381,6 +1381,11 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
     <div class="ch">
       <div class="ct">Article queue</div>
       <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:var(--text2)">Asset:</span>
+        <select id="queueSiteSelector" style="width:180px;font-size:11px" onchange="switchSite(this.value)">
+          <option value="obtained">obtained.com</option>
+          <option value="nevis">nevisigaming.com</option>
+        </select>
         <button class="btn bs" onclick="toggleAllQ()" style="font-size:11px" id="selallbtn">Select all</button>
         <button class="btn bs bp" id="runbtn" onclick="runQ()" disabled>▶ Run selected</button>
       </div>
@@ -1392,6 +1397,23 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
 
 <!-- ══ PIPELINE ══ -->
 <div class="view" id="v-pipeline">
+  <div class="card" style="margin-bottom:14px">
+    <div class="ch" style="margin-bottom:12px">
+      <div>
+        <div class="ct">Content pipeline</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Recover drafts, human edits, reviews, and retry items from one place.</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text2)">Asset:</span>
+        <select id="pipelineSiteSelector" style="width:180px;font-size:11px" onchange="switchSite(this.value)">
+          <option value="obtained">obtained.com</option>
+          <option value="nevis">nevisigaming.com</option>
+        </select>
+        <button class="btn bs" onclick="renderPipelineWorkbench()">Refresh</button>
+      </div>
+    </div>
+    <div id="pipelineBuckets"></div>
+  </div>
   <div class="g2" style="margin-bottom:14px">
     <div class="card" style="margin:0">
       <div class="ch" style="margin-bottom:10px">
@@ -1833,7 +1855,8 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
         <p>Platform sources can be suggested by clients, reviewed by admins, and overridden by client, asset, and category settings.</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn bs">Import CSV / XLSX</button>
+        <button class="btn bs" onclick="E('srcImportFile')&&E('srcImportFile').click()">Import CSV</button>
+        <input type="file" id="srcImportFile" accept=".csv,text/csv" style="display:none" onchange="importSourcesCsv(this)"/>
         <button class="btn bs bp" onclick="E('srcName')&&E('srcName').focus()">Add source</button>
       </div>
     </div>
@@ -1845,8 +1868,9 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
           <div class="ct">Available sources</div>
           <div style="font-size:11px;color:var(--text3);margin-top:3px">Platform library plus client suggestions. Daily brief scans can run per category.</div>
         </div>
-        <select id="srcFilter" style="width:180px;font-size:11px" onchange="renderSources()"></select>
+        <input type="hidden" id="srcFilter" value="all"/>
       </div>
+      <div id="sourceCategoryPills" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
       <div id="sourceSummary" style="margin-bottom:12px"></div>
       <div id="sourceList"></div>
     </div>
@@ -1859,8 +1883,22 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
           <div class="fi" style="margin:0"><label>Category</label><select id="srcCat" style="font-size:12px"></select></div>
           <div class="fi" style="margin:0"><label>Source type</label><select id="srcType" style="font-size:12px"><option value="media">Media</option><option value="official_regulator">Official regulator</option><option value="official_company">Official company</option><option value="competitor">Competitor</option><option value="internal_client">Internal/client</option><option value="data_provider">Data provider</option></select></div>
         </div>
+        <div class="g2" style="margin-bottom:8px">
+          <div class="fi" style="margin:0"><label>Priority</label><select id="srcPriority" style="font-size:12px"><option value="primary">Primary</option><option value="secondary" selected>Secondary</option><option value="watch_only">Watch only</option></select></div>
+          <div class="fi" style="margin:0"><label>Evidence type</label><select id="srcEvidenceType" style="font-size:12px"><option value="market_signal">Market signal</option><option value="primary_evidence">Primary evidence</option><option value="competitor_signal">Competitor signal</option><option value="internal_reference">Internal reference</option></select></div>
+        </div>
+        <div class="g2" style="margin-bottom:8px">
+          <div class="fi" style="margin:0"><label>Asset</label><input id="srcAsset" placeholder="obtained.com" style="font-size:12px"/></div>
+          <div class="fi" style="margin:0"><label>Client</label><input id="srcClient" placeholder="Obtained" style="font-size:12px"/></div>
+        </div>
+        <div class="fi"><label>Notes</label><textarea id="srcNotes" rows="2" placeholder="Why this source matters, limits, or category notes" style="font-size:12px"></textarea></div>
+        <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2);margin-bottom:10px">
+          <input id="srcSuggestPlatform" type="checkbox" checked style="width:auto;accent-color:var(--brand)"/> Suggest for the platform library after admin review
+        </label>
+        <input type="hidden" id="srcEditingId"/>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn bs bp" onclick="saveSourceSuggestion()">Add source</button>
+          <button class="btn bs bp" id="srcSaveBtn" onclick="saveSourceSuggestion()">Add source</button>
+          <button class="btn bs" id="srcCancelBtn" onclick="cancelSourceEdit()" style="display:none">Cancel edit</button>
           <span id="srcMsg" style="font-size:11px"></span>
         </div>
       </div>
@@ -1897,21 +1935,74 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
   <div class="studio-screen-card" style="margin-bottom:18px">
     <div class="ct" style="margin-bottom:8px">Team</div>
     <h1>Users, roles, and approval chains.</h1>
-    <p>Client admins will manage users and approval permissions here. For this staging build, the existing user management tools remain under Settings.</p>
+    <p>Manage user access, roles, and account security. Client-level approval chains will be added here as the SaaS foundation expands.</p>
   </div>
   <div class="card">
     <div class="ch">
       <div>
-        <div class="ct">Team preview</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:3px">Live user list is still rendered from the Settings user management section.</div>
+        <div class="ct">Role model</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Current roles, before client-specific approval chains are added.</div>
       </div>
-      <button class="btn bs bp" onclick="nav('settings')">Open user settings</button>
     </div>
     <div class="g3">
       <div class="stat"><div class="sv">Admin</div><div class="sl2">Full platform and client control</div></div>
       <div class="stat"><div class="sv">Editor</div><div class="sl2">Can create, edit, and suggest sources</div></div>
       <div class="stat"><div class="sv">Reviewer</div><div class="sl2">Approves compliance and publishing gates</div></div>
     </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="ct" style="margin-bottom:12px">Account security</div>
+    <div class="notice" style="margin-bottom:12px">Password reset should be handled by Supabase email recovery. This panel is for signed-in password changes only.</div>
+    <div class="g2" style="margin-bottom:10px">
+      <div class="fi" style="margin:0"><label>Current password</label><input type="password" id="cpwOld" placeholder="Enter current password" style="font-size:12px" autocomplete="current-password"/></div>
+      <div class="fi" style="margin:0"><label>New password</label><input type="password" id="cpwNew" placeholder="Enter new password" style="font-size:12px" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn bs bp" onclick="changeOwnPassword()">Update password</button>
+      <span id="cpwMsg" style="font-size:11px;min-height:16px"></span>
+    </div>
+  </div>
+  <div class="card admin-only" style="margin-top:14px">
+    <div class="ch">
+      <div class="ct">Team members</div>
+      <button class="btn bs bp" onclick="toggleAddUser()">+ Add user</button>
+    </div>
+    <div id="addUserForm" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px">New team member</div>
+      <div class="g2" style="margin-bottom:8px">
+        <div class="fi" style="margin:0"><label>Full name</label><input id="nuName" placeholder="e.g. Daniel Verblovski" style="font-size:12px"/></div>
+        <div class="fi" style="margin:0"><label>Email</label><input type="email" id="nuEmail" placeholder="e.g. daniel@obtained.com" style="font-size:12px"/></div>
+      </div>
+      <div class="g2" style="margin-bottom:10px">
+        <div class="fi" style="margin:0"><label>Password</label><input type="password" id="nuPass" placeholder="Initial password" style="font-size:12px" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/></div>
+        <div class="fi" style="margin:0"><label>Role</label>
+          <select id="nuRole" style="font-size:12px">
+            <option value="writer">Writer — can create content, submits for review</option>
+            <option value="editor">Editor — can create, review, and publish content</option>
+            <option value="admin">Admin — full access + user management</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">Site access</label>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="nuSiteObtained" value="obtained" checked style="width:auto;accent-color:var(--blue)"/> obtained.com
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="nuSiteNevis" value="nevis" style="width:auto;accent-color:var(--blue)"/> nevisigaming.com
+          </label>
+          <span style="font-size:10px;color:var(--text3)">User can only see and create content for selected sites</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn bs bsuc" onclick="addUser()">Create account</button>
+        <button class="btn bs" onclick="toggleAddUser()">Cancel</button>
+        <span id="nuMsg" style="font-size:11px;min-height:16px"></span>
+      </div>
+    </div>
+    <div id="resetRequests"></div>
+    <div id="userList"></div>
   </div>
 </div>
 
@@ -1968,6 +2059,7 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
     <div>
       <div class="card">
         <div class="ct" style="margin-bottom:12px">Publish defaults</div>
+        <div class="notice" style="margin-bottom:12px">Temporary global defaults. In the SaaS model, these move to client, asset, and category policies.</div>
         <div class="fi"><label>Default publish time</label><input type="time" id="spt" value="09:00"/></div>
         <div class="fi"><label>Publish offset (days ahead)</label><input type="number" id="spo" min="0" max="30" value="1"/></div>
         <div class="fi"><label>Default word count</label>
@@ -1982,9 +2074,9 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
         <div class="fi"><label>Standing CTA (appended to every article)</label>
           <textarea id="scta" rows="2">Ready to simplify your payments or navigate licensing? Visit obtained.com to explore our solutions.</textarea></div>
       </div>
-      <div class="card">
-        <div class="ct" style="margin-bottom:10px">Data &amp; storage</div>
-        <div class="notice ok" id="storstat">All data saved to browser localStorage — persists between sessions on this device.</div>
+      <div class="card admin-only">
+        <div class="ct" style="margin-bottom:10px">Admin backup tools</div>
+        <div class="notice ok" id="storstat">Legacy local backup tools for staging diagnostics. SaaS data should live in Supabase, not browser storage.</div>
         <div class="fi"><label>Export all data (JSON backup)</label>
           <button class="btn bs" onclick="exportData()">Download backup</button>
         </div>
@@ -2000,87 +2092,6 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
     <span id="smsg" style="font-size:12px;color:#1D9E75;display:none;font-weight:600">✓ Saved</span>
   </div>
 
-  <!-- Change own password + security question -->
-  <div class="card" style="margin-top:14px">
-    <div class="ct" style="margin-bottom:12px">Password &amp; security</div>
-    <div class="g2" style="margin-bottom:10px">
-      <div class="fi" style="margin:0"><label>Current password</label><input type="password" id="cpwOld" placeholder="Enter current password" style="font-size:12px" autocomplete="current-password"/></div>
-      <div class="fi" style="margin:0"><label>New password</label><input type="password" id="cpwNew" placeholder="Enter new password" style="font-size:12px" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/></div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
-      <button class="btn bs bp" onclick="changeOwnPassword()">Update password</button>
-      <span id="cpwMsg" style="font-size:11px;min-height:16px"></span>
-    </div>
-    <div class="dv"></div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Set a security question to enable self-service password reset from the login screen.</div>
-    <div class="fi" style="margin-bottom:8px">
-      <label>Security question</label>
-      <select id="sqQuestion" style="font-size:12px" onchange="if(this.value==='custom')E('sqCustom').style.display='block'; else E('sqCustom').style.display='none';">
-        <option value="">— Select a question —</option>
-        <option value="What city were you born in?">What city were you born in?</option>
-        <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-        <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-        <option value="What was the name of your first school?">What was the name of your first school?</option>
-        <option value="custom">Write my own question...</option>
-      </select>
-      <input id="sqCustom" placeholder="Type your custom security question" style="display:none;margin-top:6px;font-size:12px"/>
-    </div>
-    <div class="fi" style="margin-bottom:10px">
-      <label>Your answer <span style="font-weight:400;color:var(--text3)">(case-insensitive)</span></label>
-      <input id="sqAnswer" placeholder="Your answer" style="font-size:12px"/>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn bs" onclick="saveSecurityQuestion()">Save security question</button>
-      <span id="sqMsg" style="font-size:11px;min-height:16px"></span>
-    </div>
-  </div>
-
-  <!-- User management — admin only -->
-  <div class="card admin-only" style="margin-top:14px">
-    <div class="ch">
-      <div class="ct">Team members</div>
-      <button class="btn bs bp" onclick="toggleAddUser()">+ Add user</button>
-    </div>
-    <!-- Add user form (hidden by default) -->
-    <div id="addUserForm" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px">New team member</div>
-      <div class="g2" style="margin-bottom:8px">
-        <div class="fi" style="margin:0"><label>Full name</label><input id="nuName" placeholder="e.g. Daniel Verblovski" style="font-size:12px"/></div>
-        <div class="fi" style="margin:0"><label>Email</label><input type="email" id="nuEmail" placeholder="e.g. daniel@obtained.com" style="font-size:12px"/></div>
-      </div>
-      <div class="g2" style="margin-bottom:10px">
-        <div class="fi" style="margin:0"><label>Password</label><input type="password" id="nuPass" placeholder="Initial password" style="font-size:12px" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true"/></div>
-        <div class="fi" style="margin:0"><label>Role</label>
-          <select id="nuRole" style="font-size:12px">
-            <option value="writer">Writer — can create content, submits for review</option>
-            <option value="editor">Editor — can create, review, and publish content</option>
-            <option value="admin">Admin — full access + user management</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-bottom:10px">
-        <label style="display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">Site access</label>
-        <div style="display:flex;gap:16px;align-items:center">
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
-            <input type="checkbox" id="nuSiteObtained" value="obtained" checked style="width:auto;accent-color:var(--blue)"/> obtained.com
-          </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
-            <input type="checkbox" id="nuSiteNevis" value="nevis" style="width:auto;accent-color:var(--blue)"/> nevisigaming.com
-          </label>
-          <span style="font-size:10px;color:var(--text3)">User can only see and create content for selected sites</span>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn bs bsuc" onclick="addUser()">Create account</button>
-        <button class="btn bs" onclick="toggleAddUser()">Cancel</button>
-        <span id="nuMsg" style="font-size:11px;min-height:16px"></span>
-      </div>
-    </div>
-    <!-- User list -->
-    <!-- Pending reset requests -->
-    <div id="resetRequests"></div>
-    <div id="userList"></div>
-  </div>
 </div>
 
 </div><!-- /content -->
@@ -2901,11 +2912,14 @@ async function changeOwnPassword(){
 // ── Save security question ──
 async function saveSecurityQuestion(){
   const msg=document.getElementById('sqMsg');
+  if(!msg)return;
   msg.textContent='';msg.style.color='var(--red)';
   if(!currentSession){msg.textContent='Not logged in.';return;}
   const sel=document.getElementById('sqQuestion');
   const custom=document.getElementById('sqCustom');
-  const answer=(document.getElementById('sqAnswer').value||'').trim();
+  const answerEl=document.getElementById('sqAnswer');
+  if(!sel||!custom||!answerEl){msg.textContent='Security questions are no longer used for recovery.';return;}
+  const answer=(answerEl.value||'').trim();
   let question=sel.value==='custom'?(custom.value||'').trim():sel.value;
   if(!question){msg.textContent='Please select or enter a security question.';return;}
   if(!answer){msg.textContent='Please provide an answer.';return;}
@@ -3545,9 +3559,11 @@ function nav(id){
   if(id==='dashboard')renderDashboard();
   if(id==='published')renderPublished();
   if(id==='queue')renderQueue();
+  if(id==='pipeline')renderPipelineWorkbench();
   if(id==='tov'){renderTovList();renderTovSelects();}
   if(id==='log')renderActivityLog();
   if(id==='sources')renderSources();
+  if(id==='team')renderUserList();
   if(id==='settings'){loadSettingsUI();renderUserList();}
   if(id==='wizard'){wzOpen();}
   if(id==='comp'){compOpen();}
@@ -3850,10 +3866,11 @@ const PLATFORM_SOURCE_LIBRARY=[
   {id:'obtained-blog',name:'Obtained.com Blog',url:'https://obtained.com/blog/feed/',type:'internal_client',priority:'watch_only',categories:['Fintech','CASP/VASP','iGaming','Investment']}
 ];
 function briefCategories(site=activeSite){return site==='nevis'?SOURCE_CATEGORIES_NEVIS:SOURCE_CATEGORIES_OBTAINED;}
+function siteLabel(site=activeSite){return site==='nevis'?'nevisigaming.com':'obtained.com';}
 function sourceSuggestions(){if(!S.settings)S.settings={};if(!Array.isArray(S.settings.sourceSuggestions))S.settings.sourceSuggestions=[];return S.settings.sourceSuggestions;}
 function customSourcesForCategory(category){
   return sourceSuggestions().filter(s=>s.enabled!==false&&(!category||category==='all'||(s.categories||[]).includes(category))).map(s=>({
-    name:s.name,url:s.url,type:s.url&&s.url.includes('/feed')?'rss':'html',sourceType:s.type||'custom',priority:s.priority||'secondary',categories:s.categories||[]
+    name:s.name,url:s.url,type:s.url&&s.url.includes('/feed')?'rss':'html',sourceType:s.type||'custom',priority:s.priority||'secondary',categories:s.categories||[],evidenceType:s.evidenceType||'market_signal',asset:s.asset||'',client:s.client||''
   }));
 }
 async function fetchNewsHeadlines(groups,opts={}){
@@ -4024,6 +4041,10 @@ function normalizedScanTopics(topics,active){
 async function enhanceScanTopicsWithAI(siteKey,baseTopics,liveHeadlines,used,today,scanStamp){
   if(!baseTopics||!baseTopics.length)return;
   const active=siteKey;
+  const tov=getAtov();
+  const tovContext=tov
+    ? `${tov.name}: ${tov.summary||'use this voice profile as the editorial lens'} ${tov.phrases?`Signature phrasing: ${tov.phrases}`:''}`
+    : 'Default editorial analysis';
   const sys=active==='nevis'
     ?'You are a senior iGaming content strategist. Tighten existing topic suggestions without adding new unsupported facts. Return only JSON.'
     :'You are a senior fintech content strategist. Tighten existing topic suggestions without adding new unsupported facts. Return only JSON.';
@@ -4036,6 +4057,7 @@ Rules:
 - Keep exactly 12 objects if possible.
 - Use only the supplied sourceHeadline/source data; do not invent facts.
 - Make titles more specific and editorial, but preserve the named entity.
+- Shape the angle and framing using this selected angle style, without changing the factual substance: ${tovContext}
 - Keep categories within: ${categories}.
 - Return ONLY a JSON array with: id,title,sourceHeadline,source,category,trend,angle,uniqueness,keywords,namedEntity,isNews.
 - Avoid semantic duplicates with: ${used||'none'}.
@@ -5377,6 +5399,7 @@ async function refreshCompetitorMetrics(id){
 // ── QUEUE ──
 function renderQueue(){
   const list=E('qlist');const emp=E('qempty');
+  if(E('queueSiteSelector'))E('queueSiteSelector').value=activeSite;
   renderBadges();
   const sd=siteData();
   if(!(sd.queue||[]).length){list.innerHTML='';emp.style.display='block';return;}
@@ -5695,7 +5718,7 @@ async function removeQ(id){
 function retryQ(id){
   const sd=siteData();const q=sd.queue.find(x=>x.id===id);
   if(q){q.status='waiting';q.aiScore=null;q.hubspotId=null;q.errorReason=null;
-  alog('queue','Retrying queue item',q.title);persist();renderQueue();renderBadges();}
+  alog('queue','Retrying queue item',q.title);persist();renderQueue();renderBadges();renderPipelineWorkbench();}
 }
 function retryWithVoiceChange(id){
   const sd=siteData();const q=sd.queue.find(x=>x.id===id);if(!q)return;
@@ -5711,7 +5734,7 @@ function retryWithVoiceChange(id){
   if(!match){alert('Voice "'+pick+'" not found. Available: '+names);return;}
   q.tovId=match.id;q.status='waiting';q.aiScore=null;q.hubspotId=null;q.errorReason=null;
   alog('queue','Retrying with different voice','Topic: '+q.title+' | New voice: '+match.name);
-  persist();renderQueue();renderBadges();
+  persist();renderQueue();renderBadges();renderPipelineWorkbench();
 }
 function updateQField(id,field,val){const sd=siteData();const q=sd.queue.find(x=>x.id===id);if(q){q[field]=val;persist();}}
 
@@ -5724,6 +5747,51 @@ function renderBadges(){
 }
 
 // ── PIPELINE ──
+function pipelineStatusLabel(status){
+  return {waiting:'Waiting',running:'Running',approving:'Awaiting approval',review:'Final review',done:'Ready',error:'Retry needed',human_edit:'Needs human edit'}[status]||status||'Draft';
+}
+
+function renderPipelineWorkbench(){
+  const el=E('pipelineBuckets');if(!el)return;
+  if(E('pipelineSiteSelector'))E('pipelineSiteSelector').value=activeSite;
+  const q=(siteData().queue||[]).slice().reverse();
+  const buckets=[
+    {id:'human_edit',title:'Needs human edit',items:q.filter(x=>x.status==='human_edit'),hint:'Open the editor, adjust flagged sections, then re-check.'},
+    {id:'review',title:'Final review',items:q.filter(x=>x.status==='review'||x.status==='approving'),hint:'Articles that passed checks and need approval.'},
+    {id:'done',title:'Ready to publish',items:q.filter(x=>x.status==='done'),hint:'Approved items ready for publishing or already moved forward.'},
+    {id:'error',title:'Failed / retry',items:q.filter(x=>x.status==='error'||x.status==='running'),hint:'Items that can be retried or removed.'}
+  ];
+  el.innerHTML=`<div class="g4" style="margin-bottom:12px">${buckets.map(b=>`<div class="stat"><div class="sl2">${escapeHtml(b.title)}</div><div class="sv">${b.items.length}</div></div>`).join('')}</div>`+
+    buckets.map(b=>`<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <div>
+          <strong style="font-size:13px;color:var(--text)">${escapeHtml(b.title)}</strong>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${escapeHtml(b.hint)}</div>
+        </div>
+        <span class="badge bgr">${b.items.length}</span>
+      </div>
+      ${b.items.length?b.items.map(renderPipelineBucketItem).join(''):'<div class="empty" style="padding:14px">Nothing here.</div>'}
+    </div>`).join('');
+}
+
+function renderPipelineBucketItem(q){
+  const ai=Number.isFinite(Number(q.generatedAiScore??q.aiScore))?Number(q.generatedAiScore??q.aiScore)+'%':'—';
+  const title=q.generatedTitle||q.title||'Untitled article';
+  const status=pipelineStatusLabel(q.status);
+  return `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+    <div style="min-width:0;flex:1">
+      <div style="font-size:13px;font-weight:700;color:var(--text);line-height:1.3">${escapeHtml(title)}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">${escapeHtml(q.category||'')} · ${escapeHtml(status)} · AI ${escapeHtml(ai)}</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      ${q.status==='human_edit'?`<button class="btn bs bp" style="font-size:10px;padding:5px 8px" onclick="openHumanEdit('${q.id}')">Edit</button><button class="btn bs" style="font-size:10px;padding:5px 8px" onclick="exportQueueArticleDoc('${q.id}')">Export</button>`:''}
+      ${q.status==='review'&&currentSession&&currentSession.role!=='writer'?`<button class="btn bs bp" style="font-size:10px;padding:5px 8px" onclick="reviewArticle('${q.id}')">Review</button>`:''}
+      ${(q.status==='error'||q.status==='running')?`<button class="btn bs bsuc" style="font-size:10px;padding:5px 8px" onclick="retryQ('${q.id}')">Retry</button>`:''}
+      ${(q.status==='error'||q.status==='human_edit'||q.status==='running')?`<button class="btn bs bd" style="font-size:10px;padding:5px 8px" onclick="removeQ('${q.id}');renderPipelineWorkbench()">Remove</button>`:''}
+    </div>
+  </div>`;
+}
+
 function psd(id,st){const e=E('sd-'+id);if(e)e.className='sd '+st;}
 function pss(id,t){const e=E('ss-'+id);if(e)e.textContent=t;}
 function pprog(p){const e=E('pprog');if(e)e.style.width=Math.min(p,100)+'%';}
@@ -5742,7 +5810,7 @@ async function runQ(){
   if(!waiting.length||running)return;
   running=true;E('runbtn').disabled=true;nav('pipeline');
   for(const item of waiting){await runPipeline(item);}
-  running=false;renderBadges();renderQueue();
+  running=false;renderBadges();renderQueue();renderPipelineWorkbench();
 }
 
 // ── Review a writer's submission (editor/admin flow) ──
@@ -7271,6 +7339,9 @@ async function checkPublishedRank(publishedId){
 function escapeHtml(value){
   return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
+function escapeAttr(value){
+  return escapeHtml(value).replace(/`/g,'&#96;');
+}
 
 function renderIntegrationStatus(){
   const el=document.getElementById('integrationStatusCards');
@@ -7311,13 +7382,26 @@ function renderSourceControls(){
   const cats=briefCategories(activeSite);
   const filter=E('srcFilter');
   const srcCat=E('srcCat');
-  const options='<option value="all">All categories</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
   if(filter){
     const cur=filter.value||'all';
-    filter.innerHTML=options;
     filter.value=[...cats,'all'].includes(cur)?cur:'all';
   }
+  const pills=E('sourceCategoryPills');
+  if(pills){
+    const cur=(filter&&filter.value)||'all';
+    const all=['all',...cats];
+    pills.innerHTML=all.map(c=>{
+      const label=c==='all'?'All topics':c;
+      const on=c===cur;
+      return `<button class="btn bs ${on?'bp':''}" style="font-size:11px" onclick="selectSourceCategory('${escapeAttr(c)}')">${escapeHtml(label)}</button>`;
+    }).join('');
+  }
   if(srcCat)srcCat.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function selectSourceCategory(category){
+  if(E('srcFilter'))E('srcFilter').value=category||'all';
+  renderSources();
 }
 
 function sourceBadge(source){
@@ -7332,6 +7416,13 @@ function sourceBadge(source){
   }[type]||type;
   const cls=type==='official_regulator'?'bok':type==='internal_client'?'bca':type==='competitor'?'bwa':'bgr';
   return `<span class="badge ${cls}" style="font-size:9px">${label}</span>`;
+}
+
+function sourceStatusBadge(source){
+  const status=source.status||'active';
+  const label={active:'Active',pending_review:'Pending review',client_only:'Client only',disabled:'Disabled'}[status]||status;
+  const cls=status==='pending_review'?'bwa':status==='disabled'?'ber':status==='client_only'?'bca':'bok';
+  return `<span class="badge ${cls}" style="font-size:9px">${escapeHtml(label)}</span>`;
 }
 
 function renderSources(){
@@ -7354,18 +7445,23 @@ function renderSources(){
   list.innerHTML=rows.map(s=>{
     const isCustom=!!sourceSuggestions().find(x=>x.id===s.id);
     const cats=(s.categories||[]).join(', ');
+    const evidence=s.evidenceType||'market_signal';
+    const assetClient=[s.client,s.asset].filter(Boolean).join(' / ');
     return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0">
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <strong style="font-size:13px;color:var(--text)">${escapeHtml(s.name)}</strong>
           ${sourceBadge(s)}
+          ${sourceStatusBadge(s)}
           <span class="badge bgr" style="font-size:9px">${escapeHtml(s.priority||'secondary')}</span>
+          <span class="badge bca" style="font-size:9px">${escapeHtml(evidence.replace(/_/g,' '))}</span>
           <span style="font-size:10px;color:var(--text3)">${escapeHtml(s.scope)}</span>
         </div>
         <div style="font-size:11px;color:var(--text2);margin-top:3px;word-break:break-all">${escapeHtml(s.url)}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:3px">${escapeHtml(cats)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${escapeHtml(cats)}${assetClient?' · '+escapeHtml(assetClient):''}</div>
+        ${s.notes?`<div style="font-size:10px;color:var(--text3);margin-top:3px">${escapeHtml(s.notes)}</div>`:''}
       </div>
-      ${isCustom&&canEditSources()?`<button class="btn bs bd" style="font-size:10px;padding:4px 8px" onclick="deleteSourceSuggestion('${s.id}')">Remove</button>`:''}
+      ${isCustom&&canEditSources()?`<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn bs" style="font-size:10px;padding:4px 8px" onclick="editSourceSuggestion('${s.id}')">Edit</button><button class="btn bs bd" style="font-size:10px;padding:4px 8px" onclick="deleteSourceSuggestion('${s.id}')">Remove</button></div>`:''}
     </div>`;
   }).join('');
 }
@@ -7381,23 +7477,126 @@ async function saveSourceSuggestion(){
   const urlRaw=v('srcUrl').trim();
   const category=v('srcCat')||briefCategories(activeSite)[0];
   const type=v('srcType')||'media';
+  const priority=v('srcPriority')||'secondary';
+  const evidenceType=v('srcEvidenceType')||'market_signal';
+  const asset=v('srcAsset')||siteLabel(activeSite);
+  const client=v('srcClient')||(activeSite==='nevis'?'Nevis iGaming':'Obtained');
+  const notes=v('srcNotes');
+  const suggestedForPlatform=!!(E('srcSuggestPlatform')&&E('srcSuggestPlatform').checked);
+  const editingId=v('srcEditingId');
   const msg=E('srcMsg');
   if(!name||!urlRaw){if(msg){msg.textContent='Name and URL required';msg.style.color='var(--red)';}return;}
   let url=urlRaw;
   if(!/^https?:\/\//i.test(url))url='https://'+url;
   try{new URL(url);}catch(e){if(msg){msg.textContent='Invalid URL';msg.style.color='var(--red)';}return;}
   const list=sourceSuggestions();
-  if(list.some(s=>String(s.url).replace(/\/$/,'')===url.replace(/\/$/,''))){if(msg){msg.textContent='Source already exists';msg.style.color='var(--red)';}return;}
-  list.push({id:'src'+Date.now()+Math.random().toString(36).slice(2,5),name,url,type,categories:[category],priority:type==='official_regulator'?'primary':'secondary',scope:'Client suggestion',suggestedForPlatform:true,enabled:true,createdAt:Date.now()});
+  const dupe=list.some(s=>s.id!==editingId&&String(s.url).replace(/\/$/,'')===url.replace(/\/$/,''));
+  if(dupe){if(msg){msg.textContent='Source already exists';msg.style.color='var(--red)';}return;}
+  const payload={name,url,type,categories:[category],priority,evidenceType,asset,client,notes,scope:'Client suggestion',suggestedForPlatform,enabled:true,status:suggestedForPlatform?'pending_review':'client_only',updatedAt:Date.now()};
+  const existing=list.find(s=>s.id===editingId);
+  if(existing){Object.assign(existing,payload);}
+  else{list.push({id:'src'+Date.now()+Math.random().toString(36).slice(2,5),...payload,createdAt:Date.now()});}
   try{
     await persistSources();
-    if(E('srcName'))E('srcName').value='';
-    if(E('srcUrl'))E('srcUrl').value='';
-    if(msg){msg.textContent='Saved';msg.style.color='var(--green)';setTimeout(()=>{msg.textContent='';},2200);}
+    cancelSourceEdit(false);
+    if(msg){msg.textContent=existing?'Updated':'Saved';msg.style.color='var(--green)';setTimeout(()=>{msg.textContent='';},2200);}
     renderSources();
-    alog('settings','Source suggested',name+' ('+category+')');
+    alog('settings',existing?'Source updated':'Source suggested',name+' ('+category+')');
   }catch(e){
     if(msg){msg.textContent='Failed to save: '+(e.message||e);msg.style.color='var(--red)';}
+  }
+}
+
+function editSourceSuggestion(id){
+  const src=sourceSuggestions().find(s=>s.id===id);
+  if(!src||!canEditSources())return;
+  if(E('srcEditingId'))E('srcEditingId').value=src.id;
+  if(E('srcName'))E('srcName').value=src.name||'';
+  if(E('srcUrl'))E('srcUrl').value=src.url||'';
+  if(E('srcCat'))E('srcCat').value=(src.categories&&src.categories[0])||briefCategories(activeSite)[0];
+  if(E('srcType'))E('srcType').value=src.type||'media';
+  if(E('srcPriority'))E('srcPriority').value=src.priority||'secondary';
+  if(E('srcEvidenceType'))E('srcEvidenceType').value=src.evidenceType||'market_signal';
+  if(E('srcAsset'))E('srcAsset').value=src.asset||'';
+  if(E('srcClient'))E('srcClient').value=src.client||'';
+  if(E('srcNotes'))E('srcNotes').value=src.notes||'';
+  if(E('srcSuggestPlatform'))E('srcSuggestPlatform').checked=src.suggestedForPlatform!==false;
+  if(E('srcSaveBtn'))E('srcSaveBtn').textContent='Update source';
+  if(E('srcCancelBtn'))E('srcCancelBtn').style.display='inline-flex';
+  if(E('srcName'))E('srcName').focus();
+}
+
+function cancelSourceEdit(clearMsg=true){
+  ['srcEditingId','srcName','srcUrl','srcAsset','srcClient','srcNotes'].forEach(id=>{if(E(id))E(id).value='';});
+  if(E('srcPriority'))E('srcPriority').value='secondary';
+  if(E('srcEvidenceType'))E('srcEvidenceType').value='market_signal';
+  if(E('srcSuggestPlatform'))E('srcSuggestPlatform').checked=true;
+  if(E('srcSaveBtn'))E('srcSaveBtn').textContent='Add source';
+  if(E('srcCancelBtn'))E('srcCancelBtn').style.display='none';
+  if(clearMsg&&E('srcMsg'))E('srcMsg').textContent='';
+}
+
+function parseCsvRows(text){
+  const rows=[];let row=[],cell='',q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i],next=text[i+1];
+    if(ch==='"'&&q&&next==='"'){cell+='"';i++;continue;}
+    if(ch==='"'){q=!q;continue;}
+    if(ch===','&&!q){row.push(cell.trim());cell='';continue;}
+    if((ch==='\n'||ch==='\r')&&!q){if(ch==='\r'&&next==='\n')i++;row.push(cell.trim());if(row.some(Boolean))rows.push(row);row=[];cell='';continue;}
+    cell+=ch;
+  }
+  row.push(cell.trim());if(row.some(Boolean))rows.push(row);
+  return rows;
+}
+
+function sourceField(row,headers,names){
+  for(const name of names){
+    const idx=headers.indexOf(name);
+    if(idx!==-1)return row[idx]||'';
+  }
+  return '';
+}
+
+async function importSourcesCsv(input){
+  if(!canEditSources()){alert('Only admins and editors can import sources.');input.value='';return;}
+  const file=input.files&&input.files[0];if(!file)return;
+  if(file.size>500000){alert('CSV is too large. Please keep source imports under 500KB.');input.value='';return;}
+  const msg=E('srcMsg');
+  try{
+    const text=await file.text();
+    const rows=parseCsvRows(text);
+    if(rows.length<2)throw new Error('No rows found');
+    const headers=rows[0].map(h=>h.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));
+    const list=sourceSuggestions();
+    let added=0,skipped=0;
+    rows.slice(1).forEach(row=>{
+      const name=sourceField(row,headers,['source_name','name']);
+      let url=sourceField(row,headers,['url','feed_url','source_url']);
+      if(!name||!url){skipped++;return;}
+      if(!/^https?:\/\//i.test(url))url='https://'+url;
+      try{new URL(url);}catch(e){skipped++;return;}
+      if(list.some(s=>String(s.url).replace(/\/$/,'')===url.replace(/\/$/,''))){skipped++;return;}
+      const category=sourceField(row,headers,['category','categories'])||briefCategories(activeSite)[0];
+      const type=sourceField(row,headers,['source_type','type'])||'media';
+      const priority=sourceField(row,headers,['priority'])||'secondary';
+      const evidenceType=sourceField(row,headers,['evidence_type','evidence'])||'market_signal';
+      const asset=sourceField(row,headers,['asset'])||siteLabel(activeSite);
+      const client=sourceField(row,headers,['client'])||(activeSite==='nevis'?'Nevis iGaming':'Obtained');
+      const notes=sourceField(row,headers,['notes','note']);
+      const suggest=sourceField(row,headers,['suggested_for_platform','platform']).toLowerCase();
+      const suggestedForPlatform=!['no','false','0','client only','client_only'].includes(suggest);
+      list.push({id:'src'+Date.now()+Math.random().toString(36).slice(2,8),name,url,type,categories:[category],priority,evidenceType,asset,client,notes,scope:'Client suggestion',suggestedForPlatform,status:suggestedForPlatform?'pending_review':'client_only',enabled:true,createdAt:Date.now()});
+      added++;
+    });
+    await persistSources();
+    renderSources();
+    if(msg){msg.textContent=`Imported ${added} source${added===1?'':'s'}${skipped?`, skipped ${skipped}`:''}`;msg.style.color='var(--green)';}
+    alog('settings','Sources imported','Added '+added+' from CSV');
+  }catch(e){
+    if(msg){msg.textContent='Import failed: '+(e.message||e);msg.style.color='var(--red)';}
+  }finally{
+    input.value='';
   }
 }
 
@@ -7553,6 +7752,7 @@ function switchSite(site){
     }
   }
   activeSite=site;
+  ['siteSelector','queueSiteSelector','pipelineSiteSelector'].forEach(id=>{if(E(id))E(id).value=site;});
   renderScanCategoryOptions();
   // Toggle verticals visibility
   if(E('obtainedVerticals'))E('obtainedVerticals').style.display=site==='obtained'?'grid':'none';
@@ -7581,7 +7781,7 @@ function switchSite(site){
     E('btopics').style.display='none';E('bempty').style.display='block';
     E('bts').textContent='Not yet scanned today';
   }
-  renderTopics();renderQueue();renderBadges();renderPublished();
+  renderTopics();renderQueue();renderBadges();renderPublished();renderPipelineWorkbench();renderSources();
   alog('settings','Switched site','Now targeting: '+(site==='nevis'?'nevisigaming.com':'obtained.com'));
 }
 
