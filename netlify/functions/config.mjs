@@ -11,6 +11,7 @@ export default async (req) => {
       openai: !!process.env.OPENAI_API_KEY,
       anthropic: !!process.env.ANTHROPIC_API_KEY,
       gptzero: !!process.env.GPTZERO_API_KEY,
+      wordpress: !!(process.env.WP_URL && process.env.WP_USER && process.env.WP_PASS),
     },
   });
 };

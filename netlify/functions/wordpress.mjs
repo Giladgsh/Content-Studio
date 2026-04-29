@@ -1,46 +1,51 @@
 /**
- * Netlify serverless function — proxies requests to WordPress REST API.
- * Creates blog posts, uploads media (including images), etc.
+ * Netlify serverless function — proxies authenticated requests to WordPress REST API.
+ * WordPress credentials are SaaS-side env vars only; never accept credentials from the browser.
  */
+
+import { json, options, requireClient } from './_supabase.mjs';
+
+const ALLOWED_ENDPOINTS = [
+  /^\/wp-json\/wp\/v2\/posts(?:\/\d+)?(?:\?.*)?$/,
+  /^\/wp-json\/wp\/v2\/tags(?:\?.*)?$/,
+  /^\/wp-json\/wp\/v2\/media(?:\/\d+)?(?:\?.*)?$/,
+];
+
+function isAllowedEndpoint(endpoint = '') {
+  return ALLOWED_ENDPOINTS.some(rx => rx.test(endpoint));
+}
 
 export default async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      },
-    });
+    return options();
   }
 
   if (req.method !== 'POST') {
-    return Response.json({ error: { message: 'Method not allowed' } }, { status: 405 });
+    return json({ error: { message: 'Method not allowed' } }, 405);
   }
 
   try {
     const body = await req.json();
-    const { wpUrl: clientUrl, wpUser: clientUser, wpPass: clientPass, endpoint, payload, method = 'POST', isMediaUpload, fileBase64, fileName, altText } = body;
-    const wpUrl = (clientUrl || process.env.WP_URL || '').replace(/\/+$/, '').replace(/\/wp-admin\/?$/i, '');
-    const wpUser = clientUser || process.env.WP_USER || '';
-    const wpPass = clientPass || process.env.WP_PASS || '';
+    const auth = await requireClient(req, body);
+    if (auth.error) return auth.error;
+
+    const { endpoint, payload, method = 'POST', isMediaUpload, fileBase64, fileName, altText } = body;
+    const wpUrl = (process.env.WP_URL || '').replace(/\/+$/, '').replace(/\/wp-admin\/?$/i, '');
+    const wpUser = process.env.WP_USER || '';
+    const wpPass = process.env.WP_PASS || '';
 
     if (!wpUrl || !wpUser || !wpPass) {
-      return Response.json(
+      return json(
         { error: { message: 'WordPress credentials not configured — set in Settings or Netlify env vars' } },
-        { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+        400
       );
     }
 
-    if (!endpoint) {
-      return Response.json(
-        { error: { message: 'No endpoint specified' } },
-        { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
-      );
+    if (!endpoint || !isAllowedEndpoint(endpoint)) {
+      return json({ error: { message: 'WordPress endpoint is not allowed' } }, 400);
     }
 
-    const auth = Buffer.from(`${wpUser}:${wpPass}`).toString('base64');
+    const wpAuth = Buffer.from(`${wpUser}:${wpPass}`).toString('base64');
     const url = `${wpUrl}${endpoint}`;
     let response;
 
@@ -52,7 +57,7 @@ export default async (req) => {
       const blob = new Blob([bytes], { type: 'image/png' });
 
       const headers = {
-        'Authorization': `Basic ${auth}`,
+        'Authorization': `Basic ${wpAuth}`,
         'Content-Disposition': `attachment; filename="${fileName || 'image.png'}"`,
         'Content-Type': 'image/png',
       };
@@ -71,7 +76,7 @@ export default async (req) => {
             await fetch(`${wpUrl}/wp-json/wp/v2/media/${mediaData.id}`, {
               method: 'POST',
               headers: {
-                'Authorization': `Basic ${auth}`,
+                'Authorization': `Basic ${wpAuth}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({ alt_text: altText }),
@@ -85,7 +90,7 @@ export default async (req) => {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Basic ${auth}`,
+          'Authorization': `Basic ${wpAuth}`,
         },
       };
 
@@ -118,9 +123,9 @@ export default async (req) => {
       headers: { 'Access-Control-Allow-Origin': '*' },
     });
   } catch (e) {
-    return Response.json(
+    return json(
       { error: { message: 'Proxy error: ' + (e.message || String(e)) } },
-      { status: 502, headers: { 'Access-Control-Allow-Origin': '*' } }
+      502
     );
   }
 };
