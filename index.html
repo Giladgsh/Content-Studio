@@ -1780,6 +1780,7 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
       <div class="fi"><label>Voice traits (comma-separated)</label><input id="ntr" placeholder="e.g. analytical, direct, market-aware, plain-speaking, no hype"/></div>
       <div class="fi"><label>Words to always avoid</label><input id="nav2" placeholder="e.g. synergy, leverage, robust, seamless, revolutionary, game-changing"/></div>
       <div class="fi"><label>Signature writing patterns</label><textarea id="nph" rows="2" placeholder="e.g. Opens by reframing the mainstream take on a news event. Uses one rhetorical question mid-article. Ends with a practical implication for fintechs, PSPs or EMIs."></textarea></div>
+      <div class="fi"><label>Reference writing examples <span style="color:var(--text3)">(optional, strongest signal for the model)</span></label><textarea id="nex" rows="4" placeholder="Paste 2-3 short excerpts that represent this voice. Separate examples with a line containing ---"></textarea></div>
       <div class="dv"></div>
       <div class="fi"><label>Available for websites</label>
         <div style="display:flex;gap:16px;margin-top:6px">
@@ -1796,8 +1797,8 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
 
   <div class="tp" id="tp-scn">
     <div class="card">
-      <div class="ct" style="margin-bottom:12px">Auto-generate TOV from article</div>
-      <div class="notice">Claude analyses sentence rhythm, vocabulary density, opinion level, structural habits, and CTA style — then builds a complete voice profile automatically. Either paste a public URL (easiest) or paste the full article text — either is fine, both is stronger.</div>
+      <div class="ct" style="margin-bottom:12px">Auto-generate TOV from articles</div>
+      <div class="notice">Claude analyses sentence rhythm, vocabulary density, opinion level, structural habits, and CTA style — then builds a complete voice profile. Use one strong article, or upload/paste several examples for a more reliable profile.</div>
       <div class="g2">
         <div class="fi"><label>Author name</label><input id="san" placeholder="e.g. Daniel Verblovski"/></div>
         <div class="fi"><label>Author role</label><input id="sar" placeholder="e.g. Co-Founder, Obtained."/></div>
@@ -1810,7 +1811,12 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
         </div>
         <div id="sauStatus" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
       </div>
-      <div class="fi"><label>Article text <span style="color:var(--text3)">(optional if you provided a URL above — will auto-fill on fetch)</span></label><textarea id="sat" rows="7" placeholder="Paste the full article here, or click Fetch content above to pull from the URL"></textarea></div>
+      <div class="fi">
+        <label>Upload article examples <span style="color:var(--text3)">(txt, md, html, csv; multiple files allowed)</span></label>
+        <input type="file" id="tovFiles" multiple accept=".txt,.md,.markdown,.html,.htm,.csv,text/plain,text/markdown,text/html,text/csv" onchange="loadTovExampleFiles(this)"/>
+        <div id="tovFileStatus" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+      </div>
+      <div class="fi"><label>Article text <span style="color:var(--text3)">(optional if you provided a URL or uploaded files — will auto-fill)</span></label><textarea id="sat" rows="9" placeholder="Paste one or more full articles here, fetch a URL above, or upload text/markdown/html files. Separate multiple examples with ---"></textarea></div>
       <div class="fi"><label>Available for websites</label>
         <div style="display:flex;gap:16px;margin-top:6px">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="ssite_obtained" value="obtained" checked> Obtained Blog</label>
@@ -2037,11 +2043,12 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
         <div class="ct" style="margin-bottom:12px">Supported integrations</div>
         <div id="settingsSyncStatus" class="notice" style="margin-bottom:12px;display:none"></div>
         <div id="integrationStatusCards"></div>
-        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn bs" onclick="loadIntegrationStatus()">Refresh status</button>
-          <button class="btn bs" onclick="testGptzeroConnection()">Test GPTZero</button>
-          <span id="gzTestMsg" style="font-size:11px"></span>
-        </div>
+	        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+	          <button class="btn bs" onclick="loadIntegrationStatus()">Refresh status</button>
+	          <button class="btn bs" onclick="testGptzeroConnection()">Test GPTZero</button>
+	          <button class="btn bs" onclick="calibrateGptzero()">Calibrate GPTZero</button>
+	          <span id="gzTestMsg" style="font-size:11px"></span>
+	        </div>
       </div>
       <div class="card admin-only">
         <div class="ct" style="margin-bottom:12px">Asset connections</div>
@@ -3669,6 +3676,28 @@ async function testGptzeroConnection(){
   }
 }
 
+async function calibrateGptzero(){
+  if(!isCurrentUserAdmin()){alert('Only admins can calibrate GPTZero.');return;}
+  const msg=E('gzTestMsg');
+  if(msg){msg.innerHTML='<span class="sp"></span> Running calibration…';msg.style.color='var(--text2)';}
+  const humanSample=`At 7:10 on Monday morning, the compliance lead at a mid-sized payments firm had a practical problem: the board wanted a MiCA readiness update by Friday, but the firm's onboarding team was still using three separate checklists. That kind of operational mismatch is not dramatic. It is just expensive. In practice, the first useful step is to map which customer journeys actually touch crypto-asset services, then decide which controls need to move from policy documents into day-to-day workflow.`;
+  const aiSample=`In today's rapidly evolving digital landscape, businesses must leverage robust and comprehensive compliance frameworks to navigate regulatory complexity. This transformative approach empowers organizations to streamline operations, enhance stakeholder trust, and unlock sustainable growth. Moreover, by adopting a holistic strategy, companies can ensure seamless alignment with emerging market demands and position themselves at the forefront of innovation.`;
+  try{
+    const human=await gptzeroPredict(humanSample);
+    const ai=await gptzeroPredict(aiSample);
+    const hp=_gptzeroAiPercent(human);
+    const ap=_gptzeroAiPercent(ai);
+    const ok=(hp!==null&&ap!==null&&hp<ap);
+    if(msg){
+      msg.textContent='Calibration: human sample '+(hp??'—')+'% AI, AI-like sample '+(ap??'—')+'% AI'+(ok?'':' — review before trusting as hard gate');
+      msg.style.color=ok?'var(--green)':'var(--red)';
+    }
+    alog('settings','GPTZero calibration','Human sample '+(hp??'—')+'% | AI-like sample '+(ap??'—')+'%');
+  }catch(e){
+    if(msg){msg.textContent='Calibration failed: '+(e.message||e).substring(0,180);msg.style.color='var(--red)';}
+  }
+}
+
 // ── DALL-E image generation ──
 async function generateOneImage(prompt){
   const {r,d}=await postSaasApi('dalle',{clientId:activeClientId,prompt,n:1,size:'1792x1024'});
@@ -3922,13 +3951,14 @@ function renderTovList(){
     <div style="font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:10px">${t.summary||''}</div>
     <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${(t.traits||[]).map(tr=>`<span class="trait">${tr}</span>`).join('')}</div>
     <div class="g3" style="gap:10px;margin-bottom:10px">${sh}</div>
-    <div class="g2" style="font-size:11px;gap:8px;margin-bottom:8px">
-      <div><span style="color:var(--text3);font-weight:600">Rhythm: </span>${t.rhythm||'—'}</div>
-      <div><span style="color:var(--text3);font-weight:600">Structure: </span>${t.struct||'—'}</div>
-      <div><span style="color:var(--text3);font-weight:600">First person: </span>${t.fp||'—'}</div>
-      <div><span style="color:var(--text3);font-weight:600">CTA: </span>${t.cta||'—'}</div>
-    </div>
-    ${t.avoid&&t.avoid.length?`<div style="font-size:11px;color:var(--text3);margin-bottom:6px"><span style="font-weight:600">Avoid: </span>${t.avoid.join(', ')}</div>`:''}
+	    <div class="g2" style="font-size:11px;gap:8px;margin-bottom:8px">
+	      <div><span style="color:var(--text3);font-weight:600">Rhythm: </span>${t.rhythm||'—'}</div>
+	      <div><span style="color:var(--text3);font-weight:600">Structure: </span>${t.struct||'—'}</div>
+	      <div><span style="color:var(--text3);font-weight:600">First person: </span>${t.fp||'—'}</div>
+	      <div><span style="color:var(--text3);font-weight:600">CTA: </span>${t.cta||'—'}</div>
+	    </div>
+	    ${t.examples&&t.examples.length?`<div style="font-size:11px;color:var(--text3);margin-bottom:6px"><span style="font-weight:600">Reference examples: </span>${t.examples.length} saved</div>`:''}
+	    ${t.avoid&&t.avoid.length?`<div style="font-size:11px;color:var(--text3);margin-bottom:6px"><span style="font-weight:600">Avoid: </span>${t.avoid.join(', ')}</div>`:''}
     ${t.phrases?`<div style="font-size:11px;color:var(--text2);border-left:3px solid var(--blue);padding-left:10px;margin-bottom:8px;line-height:1.65;font-style:italic">${t.phrases}</div>`:''}
     <div style="font-size:10px;color:var(--text3)">${t.source||''}</div>`;
     list.appendChild(div);
@@ -3969,9 +3999,10 @@ function editTov(id){
       <div class="fi"><label>First-person use</label><select id="efp">${mkSel(fpOpts,t.fp)}</select></div>
       <div class="fi"><label>CTA style</label><select id="ect">${mkSel(ctaOpts,t.cta)}</select></div>
     </div>
-    <div class="fi"><label>Voice traits (comma-separated)</label><input id="etr" value="${(t.traits||[]).join(', ').replace(/"/g,'&quot;')}"/></div>
-    <div class="fi"><label>Words to always avoid</label><input id="eav" value="${(t.avoid||[]).join(', ').replace(/"/g,'&quot;')}"/></div>
-    <div class="fi"><label>Signature writing patterns</label><textarea id="eph" rows="2">${(t.phrases||'').replace(/</g,'&lt;')}</textarea></div>
+	    <div class="fi"><label>Voice traits (comma-separated)</label><input id="etr" value="${(t.traits||[]).join(', ').replace(/"/g,'&quot;')}"/></div>
+	    <div class="fi"><label>Words to always avoid</label><input id="eav" value="${(t.avoid||[]).join(', ').replace(/"/g,'&quot;')}"/></div>
+	    <div class="fi"><label>Signature writing patterns</label><textarea id="eph" rows="2">${(t.phrases||'').replace(/</g,'&lt;')}</textarea></div>
+	    <div class="fi"><label>Reference writing examples</label><textarea id="eex" rows="4" placeholder="Separate examples with ---">${escapeHtml((t.examples||[]).join('\n---\n'))}</textarea></div>
     <div class="dv"></div>
     <div class="fi"><label>Available for websites</label>
       <div style="display:flex;gap:16px;margin-top:6px">
@@ -4000,9 +4031,10 @@ function editTov(id){
     t.sliders={formal:+E('ef').value,data:+E('ed').value,concise:+E('ec').value,bold:+E('eb').value,tech:+E('et').value};
     t.rhythm=E('erh').value;t.struct=E('est').value;t.fp=E('efp').value;t.cta=E('ect').value;
     t.traits=E('etr').value.split(',').map(s=>s.trim()).filter(Boolean);
-    t.avoid=E('eav').value.split(',').map(s=>s.trim()).filter(Boolean);
-    t.phrases=E('eph').value.trim();
-    t.sites=eSites;
+	    t.avoid=E('eav').value.split(',').map(s=>s.trim()).filter(Boolean);
+	    t.phrases=E('eph').value.trim();
+	    t.examples=splitTovExamples(E('eex').value);
+	    t.sites=eSites;
     persist();renderTovList();renderTovSelects();overlay.remove();
   };
 }
@@ -4018,12 +4050,25 @@ function getTovSites(prefix){
   if(E(prefix+'_nevis')&&E(prefix+'_nevis').checked)sites.push('nevis');
   return sites;
 }
+function splitTovExamples(text){
+  return String(text||'')
+    .split(/\n\s*---+\s*\n/g)
+    .map(x=>x.trim().replace(/\s+/g,' '))
+    .filter(x=>x.length>80)
+    .slice(0,5)
+    .map(x=>x.length>1200?x.substring(0,1200).trim()+'...':x);
+}
+function buildTovExampleBlock(tov){
+  const examples=(tov&&Array.isArray(tov.examples)?tov.examples:[]).filter(Boolean).slice(0,3);
+  if(!examples.length)return '';
+  return `\nReference writing examples for this voice. Use these to infer cadence, paragraph movement, level of specificity, and phrasing restraint. Do not copy sentences verbatim:\n${examples.map((ex,i)=>`Example ${i+1}:\n"${ex}"`).join('\n\n')}`;
+}
 function saveTov(){
   const name=v('nn');if(!name){alert('Author name required');return;}
   const sites=getTovSites('nsite');
   if(!sites.length){alert('Select at least one website');return;}
   const idx=S.tovs.length%AC.length;const[bg,tx]=AC[idx];
-  S.tovs.push({id:'t'+Date.now(),name,initials:name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(),bg,tx,role:v('nr'),summary:v('ns'),sliders:{formal:+E('nf').value,data:+E('nd').value,concise:+E('nc').value,bold:+E('nb2').value,tech:+E('nt').value},rhythm:v('nrh'),struct:v('nst'),fp:v('nfp'),cta:v('nct'),traits:v('ntr').split(',').map(s=>s.trim()).filter(Boolean),avoid:v('nav2').split(',').map(s=>s.trim()).filter(Boolean),phrases:v('nph'),sites,source:'Manually defined',createdAt:Date.now()});
+  S.tovs.push({id:'t'+Date.now(),name,initials:name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(),bg,tx,role:v('nr'),summary:v('ns'),sliders:{formal:+E('nf').value,data:+E('nd').value,concise:+E('nc').value,bold:+E('nb2').value,tech:+E('nt').value},rhythm:v('nrh'),struct:v('nst'),fp:v('nfp'),cta:v('nct'),traits:v('ntr').split(',').map(s=>s.trim()).filter(Boolean),avoid:v('nav2').split(',').map(s=>s.trim()).filter(Boolean),phrases:v('nph'),examples:splitTovExamples(v('nex')),sites,source:'Manually defined',createdAt:Date.now()});
   persist();renderTovSelects();ttab('pro');renderTovList();
 }
 function ttab(t){['pro','new','scn'].forEach(n=>{E('tp-'+n).classList.toggle('on',n===t);E('tt-'+n).classList.toggle('on',n===t);});}
@@ -4067,6 +4112,38 @@ async function fetchTovArticleFromUrl(){
   }
 }
 
+async function loadTovExampleFiles(input){
+  const files=Array.from(input.files||[]);
+  if(!files.length)return;
+  const status=E('tovFileStatus');
+  const ta=E('sat');
+  if(files.some(f=>f.size>350000)){
+    if(status){status.textContent='One or more files are too large. Keep each file under 350KB.';status.style.color='var(--red)';}
+    input.value='';
+    return;
+  }
+  try{
+    const chunks=[];
+    for(const file of files){
+      let text=await file.text();
+      text=text.replace(/<script[\s\S]*?<\/script>/gi,' ')
+               .replace(/<style[\s\S]*?<\/style>/gi,' ')
+               .replace(/<[^>]+>/g,' ')
+               .replace(/\s+/g,' ')
+               .trim();
+      if(text.length>12000)text=text.substring(0,12000)+' ...';
+      if(text.length>200)chunks.push(`SOURCE FILE: ${file.name}\n${text}`);
+    }
+    const existing=(ta&&ta.value.trim())?ta.value.trim()+'\n\n---\n\n':'';
+    if(ta)ta.value=existing+chunks.join('\n\n---\n\n');
+    if(status){status.textContent='Loaded '+chunks.length+' article example'+(chunks.length===1?'':'s')+'. Review/edit the text, then analyse.';status.style.color='var(--green)';}
+  }catch(e){
+    if(status){status.textContent='Could not read files: '+(e.message||e);status.style.color='var(--red)';}
+  }finally{
+    input.value='';
+  }
+}
+
 async function runTovScan(){
   const name=v('san');let text=v('sat');const url=v('sau').trim();
   // If URL provided but no text yet, auto-fetch first
@@ -4079,11 +4156,11 @@ async function runTovScan(){
   btn.disabled=true;prog.style.display='block';
   prog.innerHTML='<span class="sp"></span> Analysing writing patterns with Claude...';
   try{
-    const raw=await claudeRoute('topicAngle','You are an expert writing style analyst. Return ONLY valid JSON, no markdown fences or explanation.',
-      `Analyse this article for tone of voice. Author: "${name||'Unknown'}", Role: "${v('sar')}".
-Article: ${text.substring(0,4500)}
-Return this exact JSON structure:
-{"summary":"1-2 sentence voice description","sliders":{"formal":1-10,"data":1-10,"concise":1-10,"bold":1-10,"tech":1-10},"rhythm":"one of: Mixed — short punchy + longer analytical|Consistently short and direct|Long-form, flowing paragraphs|Question-led, Socratic","struct":"one of: Prose-first, minimal bullets|Numbered frameworks|Header-led, scannable|Narrative / story arc","fp":"one of: Occasional — editorial 'I'|Frequent — personal perspective|Rarely — objective|We — company voice","cta":"one of: Soft — implied, not pushed|Direct — clear next step|Question-based|None — pure thought leadership","traits":["5 to 8 descriptors"],"avoid":["words not in this voice"],"phrases":"2-3 sentences on signature writing habits"}`,
+	    const raw=await claudeRoute('topicAngle','You are an expert writing style analyst. Return ONLY valid JSON, no markdown fences or explanation.',
+	      `Analyse the following writing sample(s) for tone of voice. They may contain multiple articles separated by "---". Author: "${name||'Unknown'}", Role: "${v('sar')}".
+	Writing samples: ${text.substring(0,9000)}
+	Return this exact JSON structure:
+	{"summary":"1-2 sentence voice description","sliders":{"formal":1-10,"data":1-10,"concise":1-10,"bold":1-10,"tech":1-10},"rhythm":"one of: Mixed — short punchy + longer analytical|Consistently short and direct|Long-form, flowing paragraphs|Question-led, Socratic","struct":"one of: Prose-first, minimal bullets|Numbered frameworks|Header-led, scannable|Narrative / story arc","fp":"one of: Occasional — editorial 'I'|Frequent — personal perspective|Rarely — objective|We — company voice","cta":"one of: Soft — implied, not pushed|Direct — clear next step|Question-based|None — pure thought leadership","traits":["5 to 8 descriptors"],"avoid":["words not in this voice"],"phrases":"2-3 sentences on signature writing habits"}`,
       1800,
       {temperature:0.25,operation:'tone_voice_analysis'});
     let p;try{p=JSON.parse(raw);}catch(e){const m=raw.match(/\{[\s\S]*\}/);p=m?JSON.parse(m[0]):null;}
@@ -4091,7 +4168,7 @@ Return this exact JSON structure:
     const idx=S.tovs.length%AC.length;const[bg,tx]=AC[idx];
     const nm=name||'Scanned author';
     const sites=getTovSites('ssite');
-    S.tovs.push({id:'sc'+Date.now(),name:nm,initials:nm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(),bg,tx,role:v('sar'),...p,sites:sites.length?sites:['obtained','nevis'],source:v('sau')?'Scanned from: '+v('sau'):'Scanned from pasted text',createdAt:Date.now()});
+	    S.tovs.push({id:'sc'+Date.now(),name:nm,initials:nm.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(),bg,tx,role:v('sar'),...p,examples:splitTovExamples(text),sites:sites.length?sites:['obtained','nevis'],source:v('sau')?'Scanned from: '+v('sau'):'Scanned from pasted/uploaded text',createdAt:Date.now()});
     persist();prog.style.display='none';btn.disabled=false;
     ttab('pro');renderTovList();renderTovSelects();
   }catch(e){prog.innerHTML='<span style="color:var(--red-text)">Error: '+e.message+'</span>';btn.disabled=false;}
@@ -6239,7 +6316,7 @@ async function runPipeline(qi){
       plog('Using human-edited draft from Needs human edit queue — generation skipped','lok');
     }else{
 	    psd('gen','dr');pss('gen','Starting multi-model draft...');plog('Starting model-routed article generation (Draft: GPT-5 route → Humanise: Claude Sonnet → Polish/SEO: GPT-5 mini route)','lin');
-    const tovPrompt=tov?`WRITE IN THIS EXACT AUTHOR VOICE:
+	    const tovPrompt=tov?`WRITE IN THIS EXACT AUTHOR VOICE:
 Author: ${tov.name} — ${tov.role}
 Summary: ${tov.summary}
 Rhythm: ${tov.rhythm}
@@ -6248,18 +6325,19 @@ First-person: ${tov.fp}
 CTA style: ${tov.cta}
 Voice traits: ${(tov.traits||[]).join(', ')}
 Words to NEVER use: ${(tov.avoid||[]).join(', ')}
-Signature habits: ${tov.phrases}`:'Write professionally.';
+Signature habits: ${tov.phrases}
+${buildTovExampleBlock(tov)}`:'Write professionally.';
     const targetWc=qi.wordCount||cfg.wc||'900';
     const seoFocus=qi.seoFocus||'';
     const seoDetail=qi.seoDetail||'';
     const primaryKw=qi.primaryKeyword||'';
     const secondaryKws=(qi.secondaryKeywords||[]).join(', ');
     const seoBlock=seoFocus||seoDetail||primaryKw?`\n\nSEO REQUIREMENTS — ENFORCE STRICTLY:
-${primaryKw?'• PRIMARY KEYWORD (HARD RULE — article will be rejected if any of these are missed): "'+primaryKw+'" MUST appear (a) in the final TITLE; (b) in the first 100 words of body copy; (c) verbatim in at least TWO H2 headings. Do not substitute synonyms; use the exact phrase.':''}
+	${primaryKw?'• PRIMARY KEYWORD: "'+primaryKw+'" should appear in the final TITLE, in the first 100 words of body copy, and in one natural H2 heading or FAQ/AEO-style section. Do not force it into multiple headings if that makes the article sound robotic.':''}
 ${secondaryKws?'• SECONDARY KEYWORDS (HARD RULE — every one must appear at least once in body copy): '+secondaryKws+'. Use them naturally, not stuffed; split across paragraphs.':''}
 ${seoFocus?'• SEO focus areas: '+seoFocus:''}
 ${seoDetail?'• SEO brief (search intent + target reader): '+seoDetail:''}
-Post-write self-check before returning: have you placed the primary keyword in the title, opening 100 words, and two H2s? Have you used every secondary keyword at least once? If any is missing, rewrite the section it belongs to before finalising.`:'';
+	Post-write self-check before returning: have you placed the primary keyword in the title, opening 100 words, and one natural heading/FAQ block? Have you used every secondary keyword at least once? If any is missing, rewrite the section it belongs to before finalising.`:'';
 
     // AEO (AI search optimization) + competitor-gap block — from enriched research done at queue-add time.
     // If any of these are present, we add them to the system prompt so the article explicitly out-positions named competitors.
@@ -6275,7 +6353,7 @@ ${competitors.length?'This article must out-rank and out-answer these specific c
 ${aeoPhrases.length?'\nAI-search (AEO) queries this article must answer directly and be citable by ChatGPT / Perplexity / Google AI Overviews:\n'+aeoPhrases.map(p=>'  - "'+p+'"').join('\n'):''}
 ${aeoBrief?'\nAEO structural guidance: '+aeoBrief:''}
 ${competitorGap?'\nDifferentiation angle (how to beat the competitors above): '+competitorGap:''}
-Apply the AEO guidance by including a lead-with-answer opening paragraph (crisp 1-2 sentence direct answer after the first H2), clearly cited entities and dates, and at least one comparison or structured block (table or tight bullet-free list) that an AI assistant can extract and attribute. HARD RULE — at least ONE (ideally two) of the AEO queries above must be echoed VERBATIM as an H2 heading (##). Do not paraphrase them; use the exact phrasing shown (minor capitalisation tweaks OK).`:'';
+	Apply the AEO guidance by including a lead-with-answer opening paragraph (crisp 1-2 sentence direct answer after the first H2), clearly cited entities and dates, and at least one comparison or structured block (table or tight bullet-free list) that an AI assistant can extract and attribute. Use one AEO query as an H2 only if it reads naturally; otherwise answer the query directly in prose or an FAQ-style section.`:'';
     // max_tokens sized generously: ~2 tokens per word + 500 token buffer for titles, headings, markdown.
     // Capped at 8000 to stay within OpenAI's response budget.
     const targetWcNum = parseInt(targetWc) || 900;
@@ -6346,8 +6424,8 @@ ${tovPrompt}
 
 ${brandPov}
 
-CRITICAL — WRITE LIKE A REAL, OPINIONATED PRACTITIONER, NOT AN AI:
-Your writing MUST pass AI-detection tools (GPTZero, Originality.ai). These rules are non-negotiable:
+	CRITICAL — WRITE A USEFUL, EVIDENCE-LED PRACTITIONER ARTICLE:
+	The first draft should be accurate, specific, useful, and commercially grounded. Do not try to "sound human" through tricks. Do not mention AI detection, originality scores, or detector avoidance. A later quality gate will evaluate style; your job here is to produce a strong article.
 
 BRAND SUBSTANCE (highest priority — this is what makes the piece feel like ${isNevis?'NEVISiGaming':'obtained.com'}):
 - The opening paragraph must include one specific, dated market signal (a named company's deal, a regulatory move, a regulator's statement) — not a generic intro.
@@ -6355,34 +6433,27 @@ BRAND SUBSTANCE (highest priority — this is what makes the piece feel like ${i
 - Include at least one comparative frame — "Malta vs Cyprus vs Lithuania", "SEPA Instant vs Faster Payments", "CASP vs VASP scope" — where relevant.
 - End every article with a commercial implication: what should a founder / operator / CFO actually do about this? Not generic "stay informed" — a specific action.
 
-PERSONALITY & OPINIONS (this makes it unmistakable as a human writer):
-- Include at least 2 clear editorial takes using first-person or near-first-person phrasing — "I'd argue…", "The honest read is…", "Most operators are still getting this wrong…", "This one surprised me…".
-- Show your working. When you make a claim, follow it with a short reason the reader wouldn't have guessed.
-- Disagree with something in the piece — call out received wisdom that's wrong, or a position you've seen the market take that you don't agree with.
-- One slightly informal aside or parenthetical per article — the kind a real expert writer slips in.
-
-SENTENCE STRUCTURE (defeats AI classifiers):
-- Vary sentence length wildly. Mix 4-word punches with 30+ word complex sentences. Inconsistency is human.
-- Start some sentences with "And", "But", "So", "Look,", "Here's the thing", "The uncomfortable truth is" — break the grammar rule deliberately.
-- Use sentence fragments occasionally. Like this. For emphasis. Then return to full sentences.
-- NEVER write three parallel sentences in a row ("X enables… Y delivers… Z provides…"). This is the #1 AI tell — kill it on sight.
-- Contractions are mandatory throughout: don't, isn't, won't, can't, we've, they're, you'd.
-
-STRUCTURE & RHYTHM:
-- Asymmetric H2 sections: some 2-sentence punches, some 5-6 sentence deep dives. Do NOT give every H2 the same treatment.
-- Use H2 cadence that reflects how a practitioner would actually think through the topic — problem → comparative options → commercial implication — not a textbook outline.
-- Avoid bullet lists unless comparing 3+ concrete items (jurisdictions, rails, regulators). Prefer prose.
-- No summary sentence at the top of every section.
+	EDITORIAL JUDGMENT:
+	- Include a clear point of view only where the evidence supports it. Do not insert forced first-person lines.
+	- Show your working. When you make a claim, follow it with the reason, trade-off, or operational implication.
+	- If the market consensus is weak or misleading, say so plainly and explain why.
+	- Use plain English and varied paragraph lengths naturally. Avoid patterned openings and repeated section templates.
+	- Prefer prose. Use a table only when it genuinely helps compare concrete items such as jurisdictions, rails, timelines, fees, or regulators.
+	
+	FACTUAL LOCK:
+	- Preserve names, dates, jurisdictions, regulators, laws, licensing categories, and claims exactly unless the brief clearly asks you to update them.
+	- If you are unsure of a fact, phrase it conservatively. Do not invent statistics, fees, licence counts, timelines, or legal requirements.
+	- For regulated subjects, write like a cautious practitioner: precise, evidenced, and commercially useful.
 
 BANNED WORDS (a single violation breaks the voice — do NOT use any of these, including variants):
 ${bannedWords.join(', ')}.
 Use plain English alternatives: "use" not "utilise", "help" not "facilitate", "start" not "embark on", "important" not "paramount", "stop" not "cease".
 
-STRICT DON'TS:
-- No "In this article we will..." or "In today's..." opens.
-- No "In conclusion" closes.
-- No "crucial" or "essential" in headings — or anywhere.
-- No transition-word-starts on every paragraph.
+	STRICT DON'TS:
+	- No "In this article we will..." or "In today's..." opens.
+	- No "In conclusion" closes.
+	- No "crucial" or "essential" in headings — or anywhere.
+	- No transition-word-starts on every paragraph.
 ${seoBlock}${competitorBlock}${doNotRepeatBlock}${formattingBlock}`;
 
     const userPrompt=`Blog article brief for ${siteName}:
@@ -6403,8 +6474,8 @@ Output format:
 - Include the Standing CTA verbatim as the final line${regenBlock}`;
     // ════════════════════════════════════════════════════════════════
 	    // MULTI-MODEL DRAFTING — routed by task:
-	    //   A) Draft   (GPT-5 route)      : structured first draft with source/SEO discipline
-	    //   B) Rewrite (Claude Sonnet 4)  : humanisation + editorial rewrite
+	    //   A) Draft   (GPT-5 route)      : evidence-led first draft with source/SEO discipline
+	    //   B) Rewrite (Claude Sonnet 4)  : editorial voice pass
 	    //   C) Polish  (GPT-5 mini route) : final consistency, SEO/AEO and banned-word check
     // Each model breaks the other's detectable patterns.
     // ════════════════════════════════════════════════════════════════
@@ -6422,7 +6493,7 @@ Output format:
 	      pss('gen','Phase A retry: compact draft...');
       const compactTarget=Math.min(targetWcNum,750);
       const compactMin=Math.floor(compactTarget*0.85);
-      const compactSys=`You are a senior ${isNevis?'iGaming regulation':'fintech'} practitioner writing for ${siteName}. Write in a human, opinionated, practical voice. Use concrete entities, jurisdictions, regulators, dates, and commercial implications. Avoid generic AI phrasing and the banned words from the original brief. Return markdown only. First line must be TITLE: followed by the title.`;
+	      const compactSys=`You are a senior ${isNevis?'iGaming regulation':'fintech'} practitioner writing for ${siteName}. Write a precise, practical article grounded in concrete entities, jurisdictions, regulators, dates, and commercial implications. Avoid generic phrasing and the banned words from the original brief. Return markdown only. First line must be TITLE: followed by the title.`;
       const compactUser=`Write a complete blog article.
 
 Title: ${qi.title}
@@ -6455,27 +6526,25 @@ Rules:
 	    let rewritten=draft;
 	    try{
 	      const claudeRewrite=await aiRoute('humanisation',
-        `You are a senior human editor rewriting a blog article so it reads unmistakably like a human practitioner wrote it — NOT an AI. You will receive a draft and must produce a rewritten version that preserves every fact, every heading, every SEO keyword, and the full length, but destroys any detectable AI stylometric patterns.
+	        `You are a senior editorial lead rewriting a blog article so it reads like a real practitioner with domain experience. You will receive a draft and must produce a stronger version that preserves every fact, every heading, every SEO keyword, and the full length while improving judgment, flow, specificity, and voice.
 
-HARD RULES you must follow:
-1. Preserve the TITLE line verbatim.
-2. Preserve all H2 headings (## lines) exactly as they are — they are SEO-critical.
-3. Keep the primary keyword and every secondary keyword in the same positions they already occupy. Do NOT remove or substitute them.
-4. Keep the article within 95–105% of the input word count. Do not shorten.
-5. Preserve every named entity (company, regulator, jurisdiction, rail, date) exactly.
+	HARD RULES you must follow:
+	1. Preserve the TITLE line verbatim.
+	2. Preserve all H2 headings (## lines) exactly as they are — they are SEO-critical.
+	3. Keep the primary keyword and every secondary keyword in the same positions they already occupy. Do NOT remove or substitute them.
+	4. Keep the article within 95–105% of the input word count. Do not shorten.
+	5. Preserve every named entity (company, regulator, jurisdiction, rail, date) exactly.
 
-WHAT TO CHANGE to beat AI detectors:
-• Vary sentence length wildly — mix 3-word punches with 30-40-word complex sentences. No three consecutive same-length sentences.
-• Break every parallel structure. If three paragraphs start with a noun-verb pattern, rewrite two of them completely.
-• Start at least two sentences with "And", "But", "So", "Look,", "Here's the thing", "The uncomfortable truth is".
-• Use contractions everywhere: don't, won't, isn't, we've, they're, you'd.
-• Add at least two first-person editorial takes ("I'd argue…", "The honest read is…", "Most operators still get this wrong…") if not already present.
-• Add one informal aside or parenthetical per article (e.g. "(yes, really)", "— and no, this isn't new territory —").
-• Remove all of these banned words/phrases if present (replace with plain-English): landscape, navigate, leverage, comprehensive, robust, streamline, cutting-edge, in today's, it's worth noting, dive into, delve into, game-changer, moreover, furthermore, consequently, revolutionize, harness, elevate, realm, tapestry, seamless, transformative, multifaceted, utilize, utilise, facilitate, paramount, crucial, essential, in conclusion, unprecedented, ever-evolving, at the forefront, cornerstone, bespoke, vibrant, dynamic, time-tested, myriad, plethora.
-• Break formulaic paragraph openings — do NOT start paragraphs with "Additionally", "Furthermore", "Moreover", "It's worth noting", "In summary".
-• Vary section lengths aggressively — some H2 sections 2-3 sentences, others 5-6. Never uniform.
+	WHAT TO IMPROVE:
+	• Strengthen the commercial argument and make each section feel like it was written by someone who understands the operational consequences.
+	• Vary rhythm naturally. Some paragraphs can be short and pointed; others can explain a trade-off in more depth.
+	• Remove repeated sentence structures and formulaic paragraph openings.
+	• Use contractions where they fit the selected voice, but do not force them into every sentence.
+	• Add editorial judgment only where it is supported by the facts.
+	• Add a practical qualifier or caveat where regulated claims could otherwise sound too absolute.
+	• Remove all of these banned words/phrases if present (replace with plain-English): landscape, navigate, leverage, comprehensive, robust, streamline, cutting-edge, in today's, it's worth noting, dive into, delve into, game-changer, moreover, furthermore, consequently, revolutionize, harness, elevate, realm, tapestry, seamless, transformative, multifaceted, utilize, utilise, facilitate, paramount, crucial, essential, in conclusion, unprecedented, ever-evolving, at the forefront, cornerstone, bespoke, vibrant, dynamic, time-tested, myriad, plethora.
 
-Return ONLY the rewritten article. First line must be the exact TITLE: line from the input.`,
+	Return ONLY the rewritten article. First line must be the exact TITLE: line from the input.`,
 	        `Draft to rewrite (${draftWc} words — keep within 95–105% of this count):\n\n${draft}`,
 	        Math.min(8000, draftWc * 2 + 800),
 	        {temperature:0.82,operation:'humanisation'}
