@@ -3447,22 +3447,29 @@ function _gptzeroScoreInfo(data){
     const doc=_gptzeroDoc(data);
     if(!doc)return {pct:null,source:'none',predictedClass:null,confidence:null,ai:null,mixed:null,human:null,average:null,complete:null};
     const probs=doc.class_probabilities||{};
-    const candidates=[
-      {source:'class_probabilities.ai',pct:_probToPct(probs.ai)},
-      {source:'average_generated_prob',pct:_probToPct(doc.average_generated_prob)},
-      {source:'completely_generated_prob',pct:_probToPct(doc.completely_generated_prob)}
-    ].filter(x=>x.pct!==null);
-    const selected=candidates.length?candidates.sort((a,b)=>b.pct-a.pct)[0]:{pct:null,source:'none'};
+    const docClass=String(doc.document_classification||doc.predicted_class||doc.prediction||'').toUpperCase();
+    const aiPct=_probToPct(probs.ai);
+    const mixedPct=_probToPct(probs.mixed);
+    const averagePct=_probToPct(doc.average_generated_prob);
+    const completePct=_probToPct(doc.completely_generated_prob);
+    let selected={source:'class_probabilities.ai',pct:aiPct};
+    // GPTZero's API docs describe class_probabilities as human/ai/mixed. Do not choose
+    // the highest available field: confidence/legacy fields can otherwise turn every
+    // document into "100% AI" during calibration.
+    if(selected.pct===null&&averagePct!==null)selected={source:'average_generated_prob',pct:averagePct};
+    if(selected.pct===null&&completePct!==null)selected={source:'completely_generated_prob',pct:completePct};
+    if(/HUMAN/.test(docClass)&&aiPct!==null)selected={source:'class_probabilities.ai (human-class doc)',pct:aiPct};
+    if(/MIXED/.test(docClass)&&aiPct!==null&&mixedPct!==null)selected={source:'class_probabilities.ai + mixed/2',pct:Math.min(100,Math.round(aiPct+(mixedPct/2)))};
     return {
       pct:selected.pct,
       source:selected.source,
-      predictedClass:doc.predicted_class||doc.prediction||null,
+      predictedClass:doc.document_classification||doc.predicted_class||doc.prediction||null,
       confidence:doc.confidence_category||doc.confidence||null,
-      ai:_probToPct(probs.ai),
-      mixed:_probToPct(probs.mixed),
+      ai:aiPct,
+      mixed:mixedPct,
       human:_probToPct(probs.human),
-      average:_probToPct(doc.average_generated_prob),
-      complete:_probToPct(doc.completely_generated_prob)
+      average:averagePct,
+      complete:completePct
     };
   }catch(e){return {pct:null,source:'error',predictedClass:null,confidence:null};}
 }
@@ -3680,19 +3687,33 @@ async function calibrateGptzero(){
   if(!isCurrentUserAdmin()){alert('Only admins can calibrate GPTZero.');return;}
   const msg=E('gzTestMsg');
   if(msg){msg.innerHTML='<span class="sp"></span> Running calibration…';msg.style.color='var(--text2)';}
-  const humanSample=`At 7:10 on Monday morning, the compliance lead at a mid-sized payments firm had a practical problem: the board wanted a MiCA readiness update by Friday, but the firm's onboarding team was still using three separate checklists. That kind of operational mismatch is not dramatic. It is just expensive. In practice, the first useful step is to map which customer journeys actually touch crypto-asset services, then decide which controls need to move from policy documents into day-to-day workflow.`;
-  const aiSample=`In today's rapidly evolving digital landscape, businesses must leverage robust and comprehensive compliance frameworks to navigate regulatory complexity. This transformative approach empowers organizations to streamline operations, enhance stakeholder trust, and unlock sustainable growth. Moreover, by adopting a holistic strategy, companies can ensure seamless alignment with emerging market demands and position themselves at the forefront of innovation.`;
+  const humanSample=`At 7:10 on Monday morning, the compliance lead at a mid-sized payments firm had a practical problem: the board wanted a MiCA readiness update by Friday, but the onboarding team was still using three separate checklists. That kind of operational mismatch is not dramatic. It is just expensive.
+
+The first useful step is to map which customer journeys actually touch crypto-asset services, then decide which controls need to move from policy documents into day-to-day workflow. In one firm we reviewed, the legal team had a clean policy for wallet screening, but the support team still handled edge cases through email. That gap matters because regulators rarely care whether the policy looked polished. They care whether the process worked on a bad Tuesday.
+
+There is also a commercial point here. If every borderline customer case has to be escalated to legal, onboarding slows down and the sales team starts routing around the process. That is where compliance stops being a control and becomes theatre. Better to define three decision paths, train the first-line team on the obvious cases, and reserve legal review for the genuinely messy ones.
+
+None of this is especially glamorous. But in payments and crypto licensing, boring operational clarity tends to beat clever policy language. The firms that get approved faster are often not the ones with the thickest manuals. They are the ones that can show, with screenshots and timestamps, how a real customer moved through the control environment.`;
+  const aiSample=`In today's rapidly evolving digital landscape, businesses must leverage robust and comprehensive compliance frameworks to navigate regulatory complexity. This transformative approach empowers organizations to streamline operations, enhance stakeholder trust, and unlock sustainable growth.
+
+Moreover, by adopting a holistic strategy, companies can ensure seamless alignment with emerging market demands and position themselves at the forefront of innovation. A dynamic compliance ecosystem enables teams to harness cutting-edge technologies while maintaining a proactive posture toward evolving rules and supervisory expectations.
+
+Furthermore, organizations that implement scalable governance models can facilitate cross-functional collaboration, optimize operational efficiency, and drive long-term value creation. Such frameworks are essential for unlocking resilience, improving transparency, and establishing a future-ready foundation in an increasingly complex marketplace.
+
+In conclusion, companies that embrace comprehensive compliance transformation will be better equipped to navigate uncertainty, leverage new opportunities, and deliver superior outcomes for stakeholders across the financial services landscape.`;
   try{
     const human=await gptzeroPredict(humanSample);
     const ai=await gptzeroPredict(aiSample);
-    const hp=_gptzeroAiPercent(human);
-    const ap=_gptzeroAiPercent(ai);
+    const hd=_gptzeroDiagnostics(human);
+    const ad=_gptzeroDiagnostics(ai);
+    const hp=hd.score;
+    const ap=ad.score;
     const ok=(hp!==null&&ap!==null&&hp<ap);
     if(msg){
-      msg.textContent='Calibration: human sample '+(hp??'—')+'% AI, AI-like sample '+(ap??'—')+'% AI'+(ok?'':' — review before trusting as hard gate');
+      msg.textContent='Calibration: human sample '+(hp??'—')+'% AI ('+hd.predictedClass+', '+hd.confidence+'), AI-like sample '+(ap??'—')+'% AI ('+ad.predictedClass+', '+ad.confidence+')'+(ok?'':' — review before trusting as hard gate');
       msg.style.color=ok?'var(--green)':'var(--red)';
     }
-    alog('settings','GPTZero calibration','Human sample '+(hp??'—')+'% | AI-like sample '+(ap??'—')+'%');
+    alog('settings','GPTZero calibration','Human sample '+(hp??'—')+'% '+hd.predictedClass+' | AI-like sample '+(ap??'—')+'% '+ad.predictedClass);
   }catch(e){
     if(msg){msg.textContent='Calibration failed: '+(e.message||e).substring(0,180);msg.style.color='var(--red)';}
   }
@@ -4299,6 +4320,16 @@ function keywordsFromHeadline(headline,category){
   while(unique.length<3)unique.push(category.toLowerCase().replace('/',' '));
   return unique;
 }
+function buildTopicResearchBrief(t={}){
+  const bits=[];
+  if(t.sourceHeadline)bits.push('Original headline: '+t.sourceHeadline);
+  if(t.source)bits.push('Source: '+t.source);
+  if(t.sourceDate)bits.push('Source date: '+String(t.sourceDate).split('T')[0]);
+  if(t.sourceSnippet)bits.push('Source context: '+t.sourceSnippet);
+  if(t.angle)bits.push('Editorial angle: '+t.angle);
+  if(t.namedEntity)bits.push('Named entity: '+t.namedEntity);
+  return bits.join('\n');
+}
 function topicsFromHeadlines(newsData,active,used,onlyCategories=null){
   const usedText=String(used||'').toLowerCase();
   const rows=[];
@@ -4329,20 +4360,25 @@ function topicsFromHeadlines(newsData,active,used,onlyCategories=null){
       const entity=extractEntityFromHeadline(row.title);
       topics.push({
         id,
-        title:topicTitleFromHeadline(row.title,category,active),
-        sourceHeadline:row.title,
-        source:row.source,
-        category,
+	        title:topicTitleFromHeadline(row.title,category,active),
+	        sourceHeadline:row.title,
+	        source:row.source,
+	        sourceSnippet:row.snippet||'',
+	        sourceDate:row.date||'',
+	        category,
         trend:/fine|penalt|license|licence|acqui|funding|raises|regulat|mica|ban|launch/i.test(row.title)?'hot':'warm',
         angle:(active==='nevis'
           ?`Use this live industry signal to explain how Nevis can position its framework against larger or slower jurisdictions.`
           :`Use this live industry signal to build a specific, research-led angle for regulated payments, licensing, or market entry decisions.`),
         uniqueness:82+((topics.length*3)%11),
         keywords:keywordsFromHeadline(row.title,category),
-        namedEntity:entity,
-        isNews:true,
-        aiSource:'Live headlines'
-      });
+	        namedEntity:entity,
+	        isNews:true,
+	        aiSource:'Live headlines',
+	        researchBrief:buildTopicResearchBrief({sourceHeadline:row.title,source:row.source,sourceSnippet:row.snippet,sourceDate:row.date,angle:(active==='nevis'
+	          ?`Use this live industry signal to explain how Nevis can position its framework against larger or slower jurisdictions.`
+	          :`Use this live industry signal to build a specific, research-led angle for regulated payments, licensing, or market entry decisions.`),namedEntity:entity})
+	      });
     });
   });
   return topics.slice(0,12);
@@ -4353,18 +4389,21 @@ function normalizedScanTopics(topics,active){
     :['Fintech','CASP/VASP','iGaming','Investment'];
   return (topics||[]).slice(0,12).map((t,i)=>({
     id:(active==='nevis'?'n':'t')+(i+1),
-    title:t.title||topicTitleFromHeadline(t.sourceHeadline||t.namedEntity||'Market signal',t.category||wanted[i%wanted.length],active),
-    sourceHeadline:t.sourceHeadline||t.originalHeadline||'',
-    source:t.source||'',
+	    title:t.title||topicTitleFromHeadline(t.sourceHeadline||t.namedEntity||'Market signal',t.category||wanted[i%wanted.length],active),
+	    sourceHeadline:t.sourceHeadline||t.originalHeadline||'',
+	    source:t.source||'',
+	    sourceSnippet:t.sourceSnippet||t.snippet||'',
+	    sourceDate:t.sourceDate||t.date||'',
     category:wanted.includes(t.category)?t.category:wanted[i%wanted.length],
     trend:['hot','warm','cool'].includes(t.trend)?t.trend:'warm',
     angle:t.angle||'Use this signal to build a specific, research-led angle for the target reader.',
     uniqueness:Math.max(60,Math.min(99,parseInt(t.uniqueness)||84)),
     keywords:Array.isArray(t.keywords)?t.keywords.slice(0,4):keywordsFromHeadline(t.title||'',t.category||wanted[i%wanted.length]),
-    namedEntity:t.namedEntity||extractEntityFromHeadline(t.title||t.sourceHeadline||'Market participants'),
-    isNews:t.isNews!==false,
-    aiSource:t.aiSource||'AI enhanced'
-  }));
+	    namedEntity:t.namedEntity||extractEntityFromHeadline(t.title||t.sourceHeadline||'Market participants'),
+	    isNews:t.isNews!==false,
+	    aiSource:t.aiSource||'AI enhanced',
+	    researchBrief:t.researchBrief||buildTopicResearchBrief(t)
+	  }));
 }
 async function enhanceScanTopicsWithAI(siteKey,baseTopics,liveHeadlines,used,today,scanStamp){
   if(!baseTopics||!baseTopics.length)return;
@@ -4387,7 +4426,8 @@ Rules:
 - Make titles more specific and editorial, but preserve the named entity.
 - Shape the angle and framing using this selected angle style, without changing the factual substance: ${tovContext}
 - Keep categories within: ${categories}.
-- Return ONLY a JSON array with: id,title,sourceHeadline,source,category,trend,angle,uniqueness,keywords,namedEntity,isNews.
+	- Return ONLY a JSON array with: id,title,sourceHeadline,source,sourceSnippet,sourceDate,category,trend,angle,uniqueness,keywords,namedEntity,isNews,researchBrief.
+	- researchBrief should be 3-5 compact bullets: what happened, why it matters, what angle the article should own, and what claim must be verified before publishing.
 - Avoid semantic duplicates with: ${used||'none'}.
 
 Date: ${today}
@@ -4704,13 +4744,16 @@ async function addSingleToQueue(topicId){
   if(!sd.queue)sd.queue=[];
   const qId='q'+Date.now()+Math.random().toString(36).slice(2,5);
   const wc=v('briefWc')||S.settings.wc||'900';
-  sd.queue.push({
-    id:qId,topicId:t.id,title:t.title,category:t.category,keywords:t.keywords,
-    angle:t.angle,namedEntity:t.namedEntity,tovId:S.activeTovId,status:'waiting',
-    addedAt:Date.now(),aiScore:null,hubspotId:null,wordCount:wc,
-    seoFocus:(t.keywords||[]).join(', '),seoDetail:t.angle?'Focus angle: '+t.angle:'',
-    targetSite:activeSite,seoGenerating:true
-  });
+	  sd.queue.push({
+	    id:qId,topicId:t.id,title:t.title,category:t.category,keywords:t.keywords,
+	    angle:t.angle,namedEntity:t.namedEntity,tovId:S.activeTovId,status:'waiting',
+	    addedAt:Date.now(),aiScore:null,hubspotId:null,wordCount:wc,
+	    seoFocus:(t.keywords||[]).join(', '),seoDetail:t.angle?'Focus angle: '+t.angle:'',
+	    source:t.source||'',sourceHeadline:t.sourceHeadline||'',sourceSnippet:t.sourceSnippet||'',sourceDate:t.sourceDate||'',
+	    researchBrief:t.researchBrief||buildTopicResearchBrief(t),
+	    targetSite:activeSite,seoGenerating:true,
+	    aeoPhrases:[],aeoBrief:'',competitorGap:'',competitorsUsed:competitorsFor(activeSite,t.category).map(c=>({id:c.id,name:c.name,url:c.url}))
+	  });
   // Remove from topics list (will return if removed from queue)
   sd.topics=sd.topics.filter(x=>x.id!==topicId);
   persist();
@@ -4719,13 +4762,16 @@ async function addSingleToQueue(topicId){
   alog('queue','Added to queue',t.title.substring(0,60));
   // Generate SEO keywords in background
   const qi=sd.queue.find(q=>q.id===qId);
-  const seo=await generateSeoKeywords(t.title,t.category,t.keywords,t.angle,t.namedEntity,activeSite);
-  if(seo&&qi){
-    if(!qi.seoFocus||qi.seoFocus===(t.keywords||[]).join(', '))qi.seoFocus=seo.suggestedSeoFocus||qi.seoFocus;
-    if(!qi.seoDetail||qi.seoDetail.startsWith('Focus angle:'))qi.seoDetail=seo.seoDetail||qi.seoDetail;
-    qi.primaryKeyword=seo.primaryKeyword||'';
-    qi.secondaryKeywords=seo.secondaryKeywords||[];
-  }
+	  const seo=await generateSeoKeywords(t.title,t.category,t.keywords,t.angle,t.namedEntity,activeSite,t);
+	  if(seo&&qi){
+	    if(!qi.seoFocus||qi.seoFocus===(t.keywords||[]).join(', '))qi.seoFocus=seo.suggestedSeoFocus||qi.seoFocus;
+	    if(!qi.seoDetail||qi.seoDetail.startsWith('Focus angle:'))qi.seoDetail=seo.seoDetail||qi.seoDetail;
+	    qi.primaryKeyword=seo.primaryKeyword||'';
+	    qi.secondaryKeywords=seo.secondaryKeywords||[];
+	    qi.aeoPhrases=Array.isArray(seo.aeoPhrases)?seo.aeoPhrases:[];
+	    qi.aeoBrief=seo.aeoBrief||'';
+	    qi.competitorGap=seo.competitorGap||'';
+	  }
   if(qi)qi.seoGenerating=false;
   persist();
   renderQueue();
@@ -4974,7 +5020,7 @@ function _trimAtWordBoundary(s, max){
   return cut.replace(/[.,;:\s]+$/,'');
 }
 
-async function generateSeoKeywords(title,category,keywords,angle,namedEntity,site){
+async function generateSeoKeywords(title,category,keywords,angle,namedEntity,site,context={}){
   try{
     const siteDomain=site==='nevis'?'nevisigaming.com':'obtained.com';
     const siteDesc=site==='nevis'?'iGaming regulation, Nevis jurisdiction, gaming licensing':'fintech, CASP/VASP licensing, iGaming payments, investment funds';
@@ -4990,12 +5036,20 @@ async function generateSeoKeywords(title,category,keywords,angle,namedEntity,sit
       'You are an SEO and AEO (Answer Engine Optimization) specialist. Return ONLY valid JSON, no markdown fences.',
       `Design SEO and AEO positioning for a blog article.
 
-Title: "${title}"
-Vertical: ${category}
-Existing keywords: ${(keywords||[]).join(', ')||'none'}
-Angle / brief: ${angle||'general'}
-Named entity: ${namedEntity||'none'}
-Site: ${siteDomain} (${siteDesc})
+	Title: "${title}"
+	Vertical: ${category}
+	Existing keywords: ${(keywords||[]).join(', ')||'none'}
+	Angle / brief: ${angle||'general'}
+	Named entity: ${namedEntity||'none'}
+	Site: ${siteDomain} (${siteDesc})
+	Source / research context:
+	${context&&Object.keys(context).length?[
+	  context.sourceHeadline?'Original headline: '+context.sourceHeadline:'',
+	  context.source?'Source: '+context.source:'',
+	  context.sourceDate?'Source date: '+String(context.sourceDate).split('T')[0]:'',
+	  context.sourceSnippet?'Snippet: '+context.sourceSnippet:'',
+	  context.researchBrief?'Existing research brief: '+context.researchBrief:''
+	].filter(Boolean).join('\n'):'none supplied'}
 
 ${competitiveInstruction}
 
@@ -5068,13 +5122,15 @@ async function addQ(){
     const qId='q'+Date.now()+Math.random().toString(36).slice(2,5);
     // Snapshot competitors at add-time (may be empty) so pipeline has a stable reference
     const compsSnap=competitorsFor(activeSite,t.category).map(c=>({id:c.id,name:c.name,url:c.url}));
-    sd.queue.push({
-      id:qId,topicId:t.id,title:t.title,category:t.category,keywords:t.keywords,angle:t.angle,namedEntity:t.namedEntity,
-      tovId:S.activeTovId,status:'waiting',addedAt:Date.now(),aiScore:null,hubspotId:null,wordCount:itemWc,
-      seoFocus:autoSeo,seoDetail:autoSeoDetail,targetSite:activeSite,seoGenerating:true,
-      aeoPhrases:[],aeoBrief:'',competitorGap:'',competitorsUsed:compsSnap
-    });
-    newIds.push({qId,title:t.title,category:t.category,keywords:t.keywords,angle:t.angle,namedEntity:t.namedEntity});
+	    sd.queue.push({
+	      id:qId,topicId:t.id,title:t.title,category:t.category,keywords:t.keywords,angle:t.angle,namedEntity:t.namedEntity,
+	      tovId:S.activeTovId,status:'waiting',addedAt:Date.now(),aiScore:null,hubspotId:null,wordCount:itemWc,
+	      seoFocus:autoSeo,seoDetail:autoSeoDetail,targetSite:activeSite,seoGenerating:true,
+	      source:t.source||'',sourceHeadline:t.sourceHeadline||'',sourceSnippet:t.sourceSnippet||'',sourceDate:t.sourceDate||'',
+	      researchBrief:t.researchBrief||buildTopicResearchBrief(t),
+	      aeoPhrases:[],aeoBrief:'',competitorGap:'',competitorsUsed:compsSnap
+	    });
+	    newIds.push({qId,title:t.title,category:t.category,keywords:t.keywords,angle:t.angle,namedEntity:t.namedEntity,source:t.source,sourceHeadline:t.sourceHeadline,sourceSnippet:t.sourceSnippet,sourceDate:t.sourceDate,researchBrief:t.researchBrief});
     added++;
   });
   persist();clearSel();renderBadges();
@@ -5083,7 +5139,7 @@ async function addQ(){
     // Generate SEO/AEO research in background for each new queue item (competitor-aware)
     for(const item of newIds){
       const qi=sd.queue.find(q=>q.id===item.qId);if(!qi)continue;
-      const seo=await generateSeoKeywords(item.title,item.category,item.keywords,item.angle,item.namedEntity,activeSite);
+	      const seo=await generateSeoKeywords(item.title,item.category,item.keywords,item.angle,item.namedEntity,activeSite,item);
       if(seo&&qi){
         if(!qi.seoFocus||qi.seoFocus===(item.keywords||[]).join(', '))qi.seoFocus=seo.suggestedSeoFocus||qi.seoFocus;
         if(!qi.seoDetail||qi.seoDetail.startsWith('Focus angle:'))qi.seoDetail=seo.seoDetail||qi.seoDetail;
@@ -5127,7 +5183,7 @@ async function addCustomTopic(){
   const msg=E('customMsg');msg.textContent='✓ "'+title.substring(0,50)+(title.length>50?'...':'')+'" added to queue — generating SEO + AEO research...';msg.style.display='inline';
   // Generate competitor-aware SEO/AEO research in background
   const qi=sd.queue.find(q=>q.id===qId);
-  const seo=await generateSeoKeywords(title,cat,keywords,angle,entity,activeSite);
+	  const seo=await generateSeoKeywords(title,cat,keywords,angle,entity,activeSite,{researchBrief:angle});
   if(seo&&qi){
     if(!qi.seoFocus||qi.seoFocus===keywords.join(', '))qi.seoFocus=seo.suggestedSeoFocus||qi.seoFocus;
     if(!qi.seoDetail||qi.seoDetail===angle)qi.seoDetail=seo.seoDetail||qi.seoDetail;
@@ -5415,8 +5471,14 @@ async function wzCommitToQueue(){
   const seoFocus=[primary,...secondary].filter(Boolean).join(', ');
   const aeoPhrasesRaw=v('wzAeoPhrases')||'';
   const aeoPhrases=aeoPhrasesRaw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  const aeoBrief=v('wzAeoBrief')||'';
-  const competitorGap=v('wzCompGap')||'';
+	  const aeoBrief=v('wzAeoBrief')||'';
+	  const competitorGap=v('wzCompGap')||'';
+	  const researchBrief=[
+	    brief?'Brief: '+brief:'',
+	    seoDetail?'SEO/search intent: '+seoDetail:'',
+	    aeoBrief?'AEO guidance: '+aeoBrief:'',
+	    competitorGap?'Competitor gap: '+competitorGap:''
+	  ].filter(Boolean).join('\n');
   // Snapshot the competitors used for this research so the pipeline can reference them later
   const matchedCompetitors=competitorsFor(siteSel,vert).map(c=>({id:c.id,name:c.name,url:c.url}));
 
@@ -5431,10 +5493,11 @@ async function wzCommitToQueue(){
     id:qId,topicId,title,category:vert,keywords:secondary,angle:brief,namedEntity:entity,
     tovId:tovId||S.activeTovId,status:'waiting',addedAt:Date.now(),
     aiScore:null,hubspotId:null,wordCount:wc,
-    seoFocus,seoDetail,primaryKeyword:primary,secondaryKeywords:secondary,
-    aeoPhrases,aeoBrief,competitorGap,competitorsUsed:matchedCompetitors,
-    isCustom:true,targetSite:siteSel,seoGenerating:false
-  });
+	    seoFocus,seoDetail,primaryKeyword:primary,secondaryKeywords:secondary,
+	    aeoPhrases,aeoBrief,competitorGap,competitorsUsed:matchedCompetitors,
+	    researchBrief,
+	    isCustom:true,targetSite:siteSel,seoGenerating:false
+	  });
   persist();renderBadges();
   alog('queue','Custom topic added (wizard)','Title: '+title.substring(0,80)+' | Vertical: '+vert+' | Site: '+siteSel+' | vs '+(matchedCompetitors.length||0)+' competitor'+(matchedCompetitors.length===1?'':'s'));
   const m=E('wzQueueMsg');
@@ -5765,9 +5828,17 @@ function renderQueue(){
       ${q.namedEntity?`<span>· ${q.namedEntity}</span>`:''}
       ${q.aiScore!==null?`<span>· AI: ${q.aiScore}%</span>`:''}
       <span style="color:var(--text3)">Added ${fmtTime(q.addedAt)}</span>
-      ${q.hubspotId?`<a href="https://app-eu1.hubspot.com/content/${HS_PORTAL}/edit/${q.hubspotId}" target="_blank" class="a" style="margin-left:4px">View in HubSpot →</a>`:''}
-    </div>
-    ${q.status==='error'?`<div style="margin-top:8px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px">
+	      ${q.hubspotId?`<a href="https://app-eu1.hubspot.com/content/${HS_PORTAL}/edit/${q.hubspotId}" target="_blank" class="a" style="margin-left:4px">View in HubSpot →</a>`:''}
+	    </div>
+	    ${(q.sourceHeadline||q.researchBrief||q.aeoBrief||q.competitorGap)?`<details style="margin-top:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px">
+	      <summary style="font-size:11px;font-weight:700;color:var(--text2);cursor:pointer">Research brief ${q.source?`<span class="badge bca" style="font-size:9px;margin-left:6px">${escapeHtml(q.source)}</span>`:''}</summary>
+	      ${q.sourceHeadline?`<div style="font-size:11px;color:var(--text2);margin-top:8px"><strong>Source headline:</strong> ${escapeHtml(q.sourceHeadline)}</div>`:''}
+	      ${q.sourceSnippet?`<div style="font-size:11px;color:var(--text3);margin-top:4px">${escapeHtml(q.sourceSnippet)}</div>`:''}
+	      ${q.researchBrief?`<div style="font-size:11px;color:var(--text2);white-space:pre-wrap;margin-top:8px">${escapeHtml(q.researchBrief)}</div>`:''}
+	      ${q.aeoBrief?`<div style="font-size:11px;color:var(--text2);white-space:pre-wrap;margin-top:8px"><strong>AEO:</strong> ${escapeHtml(q.aeoBrief)}</div>`:''}
+	      ${q.competitorGap?`<div style="font-size:11px;color:var(--text2);white-space:pre-wrap;margin-top:8px"><strong>Competitor gap:</strong> ${escapeHtml(q.competitorGap)}</div>`:''}
+	    </details>`:''}
+	    ${q.status==='error'?`<div style="margin-top:8px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px">
       <div style="font-size:11px;font-weight:600;color:#c62828;margin-bottom:4px">⚠ ${q.errorReason||'Article generation failed'}</div>
       <div style="font-size:11px;color:var(--text2);margin-bottom:8px">${q.errorReason&&q.errorReason.includes('AI detection')?'The content was too AI-detectable after multiple rewrites. Try changing the voice profile, adjusting the topic angle, or using a shorter word count.':q.errorReason&&q.errorReason.includes('Rejected')?'This article was reviewed and rejected. You can retry with a different voice or angle, or remove it and pick a different topic.':'The pipeline encountered an error. You can retry, or remove this topic and choose a different one.'}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -5795,8 +5866,9 @@ function renderQueue(){
       <div style="flex:1;min-width:200px"><label style="font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:2px">SEO focus &amp; requirements ${q.seoGenerating?'<span style="color:var(--blue);font-weight:400">⏳ Generating...</span>':''}</label><input style="font-size:11px;padding:4px 8px" value="${(q.seoFocus||'').replace(/"/g,'&quot;')}" placeholder="Keywords, search intent, focus areas..." onchange="updateQField('${q.id}','seoFocus',this.value)"/></div>
       ${q.primaryKeyword?`<div style="width:100%"><label style="font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:2px">Primary keyword</label><input style="font-size:11px;padding:4px 8px;border:1px solid var(--blue);background:color-mix(in srgb,var(--blue) 5%,transparent)" value="${(q.primaryKeyword||'').replace(/"/g,'&quot;')}" onchange="updateQField('${q.id}','primaryKeyword',this.value)"/></div>`:''}
       ${(q.secondaryKeywords||[]).length?`<div style="width:100%"><label style="font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:2px">Secondary keywords <span style="font-weight:400;color:var(--text3)">(edit as needed)</span></label><input style="font-size:11px;padding:4px 8px" value="${(q.secondaryKeywords||[]).join(', ').replace(/"/g,'&quot;')}" onchange="updateQField('${q.id}','secondaryKeywords',this.value.split(',').map(k=>k.trim()).filter(Boolean))"/></div>`:''}
-      ${q.seoDetail?`<div style="width:100%"><label style="font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:2px">SEO brief</label><textarea style="font-size:11px;padding:4px 8px;min-height:36px" onchange="updateQField('${q.id}','seoDetail',this.value)">${q.seoDetail.replace(/</g,'&lt;')}</textarea></div>`:''}
-    </div>`:''}`;
+	      ${q.seoDetail?`<div style="width:100%"><label style="font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:2px">SEO brief</label><textarea style="font-size:11px;padding:4px 8px;min-height:36px" onchange="updateQField('${q.id}','seoDetail',this.value)">${q.seoDetail.replace(/</g,'&lt;')}</textarea></div>`:''}
+	      <div style="width:100%"><label style="font-size:10px;font-weight:600;color:var(--text3);display:block;margin-bottom:2px">Research brief for draft</label><textarea style="font-size:11px;padding:4px 8px;min-height:54px" onchange="updateQField('${q.id}','researchBrief',this.value)">${escapeHtml(q.researchBrief||'')}</textarea></div>
+	    </div>`:''}`;
     list.appendChild(div);
   });
   updateRunBtn();
@@ -6031,11 +6103,12 @@ async function removeQ(id){
     const topicExists=(sd.topics||[]).some(t=>t.id===q.topicId);
     if(!topicExists){
       // Create topic object from queue item
-      const restoredTopic={
-        id:q.topicId,title:q.title,category:q.category,trend:'warm',
-        angle:q.angle||'',uniqueness:75,keywords:q.keywords||[],
-        namedEntity:q.namedEntity||'',isNews:false,source:null,sourceHeadline:null,aiSource:''
-      };
+	      const restoredTopic={
+	        id:q.topicId,title:q.title,category:q.category,trend:'warm',
+	        angle:q.angle||'',uniqueness:75,keywords:q.keywords||[],
+	        namedEntity:q.namedEntity||'',isNews:!!q.sourceHeadline,source:q.source||'',sourceHeadline:q.sourceHeadline||'',
+	        sourceSnippet:q.sourceSnippet||'',sourceDate:q.sourceDate||'',researchBrief:q.researchBrief||'',aiSource:q.sourceHeadline?'Restored live topic':''
+	      };
       if(!sd.topics)sd.topics=[];
       sd.topics.push(restoredTopic);
     }
@@ -6328,16 +6401,24 @@ Words to NEVER use: ${(tov.avoid||[]).join(', ')}
 Signature habits: ${tov.phrases}
 ${buildTovExampleBlock(tov)}`:'Write professionally.';
     const targetWc=qi.wordCount||cfg.wc||'900';
-    const seoFocus=qi.seoFocus||'';
-    const seoDetail=qi.seoDetail||'';
-    const primaryKw=qi.primaryKeyword||'';
+	    const seoFocus=qi.seoFocus||'';
+	    const seoDetail=qi.seoDetail||'';
+	    const researchBrief=qi.researchBrief||buildTopicResearchBrief(qi);
+	    const primaryKw=qi.primaryKeyword||'';
     const secondaryKws=(qi.secondaryKeywords||[]).join(', ');
     const seoBlock=seoFocus||seoDetail||primaryKw?`\n\nSEO REQUIREMENTS — ENFORCE STRICTLY:
 	${primaryKw?'• PRIMARY KEYWORD: "'+primaryKw+'" should appear in the final TITLE, in the first 100 words of body copy, and in one natural H2 heading or FAQ/AEO-style section. Do not force it into multiple headings if that makes the article sound robotic.':''}
 ${secondaryKws?'• SECONDARY KEYWORDS (HARD RULE — every one must appear at least once in body copy): '+secondaryKws+'. Use them naturally, not stuffed; split across paragraphs.':''}
-${seoFocus?'• SEO focus areas: '+seoFocus:''}
-${seoDetail?'• SEO brief (search intent + target reader): '+seoDetail:''}
+	${seoFocus?'• SEO focus areas: '+seoFocus:''}
+	${seoDetail?'• SEO brief (search intent + target reader): '+seoDetail:''}
 	Post-write self-check before returning: have you placed the primary keyword in the title, opening 100 words, and one natural heading/FAQ block? Have you used every secondary keyword at least once? If any is missing, rewrite the section it belongs to before finalising.`:'';
+	    const evidenceBlock=researchBrief?`\n\nRESEARCH BRIEF — USE THIS AS THE FACT/ANGLE HANDOFF FROM TOPIC SELECTION:
+${researchBrief}
+
+Rules for this brief:
+- Use it to shape the argument and opening context.
+- Do not invent facts beyond it; if a claim needs verification, phrase it conservatively.
+- If the brief includes an original headline, make the article meaningfully expand beyond the headline rather than paraphrasing it.`:'';
 
     // AEO (AI search optimization) + competitor-gap block — from enriched research done at queue-add time.
     // If any of these are present, we add them to the system prompt so the article explicitly out-positions named competitors.
@@ -6423,6 +6504,8 @@ Rewrite the article from scratch addressing the feedback above while keeping the
 ${tovPrompt}
 
 ${brandPov}
+
+${evidenceBlock}
 
 	CRITICAL — WRITE A USEFUL, EVIDENCE-LED PRACTITIONER ARTICLE:
 	The first draft should be accurate, specific, useful, and commercially grounded. Do not try to "sound human" through tricks. Do not mention AI detection, originality scores, or detector avoidance. A later quality gate will evaluate style; your job here is to produce a strong article.
