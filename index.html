@@ -3426,41 +3426,113 @@ async function gptzeroPredict(documentText){
 // Normalize GPTZero response to a single AI-probability percentage (0-100).
 // GPTZero response shape: { documents: [{ class_probabilities: { ai, human, mixed }, ... }] }
 // We use document-level ai probability. Higher = more AI. Returns number or null.
-function _gptzeroAiPercent(data){
+function _probToPct(value){
+  if(typeof value!=='number'||!Number.isFinite(value))return null;
+  return Math.round((value>1?value:value*100));
+}
+
+function _gptzeroDoc(data){
+  return data&&Array.isArray(data.documents)&&data.documents.length?data.documents[0]:null;
+}
+
+function _gptzeroScoreInfo(data){
   try{
-    const doc=data&&data.documents&&data.documents[0];
-    if(!doc)return null;
-    // Prefer class_probabilities.ai (0-1 float) from the document
-    const p=(doc.class_probabilities&&doc.class_probabilities.ai);
-    if(typeof p==='number')return Math.round(p*100);
-    // Fallbacks: some endpoints return "average_generated_prob", "completely_generated_prob", or sentence-level only
-    if(typeof doc.average_generated_prob==='number')return Math.round(doc.average_generated_prob*100);
-    if(typeof doc.completely_generated_prob==='number')return Math.round(doc.completely_generated_prob*100);
-    return null;
-  }catch(e){return null;}
+    const doc=_gptzeroDoc(data);
+    if(!doc)return {pct:null,source:'none',predictedClass:null,confidence:null,ai:null,mixed:null,human:null,average:null,complete:null};
+    const probs=doc.class_probabilities||{};
+    const candidates=[
+      {source:'class_probabilities.ai',pct:_probToPct(probs.ai)},
+      {source:'average_generated_prob',pct:_probToPct(doc.average_generated_prob)},
+      {source:'completely_generated_prob',pct:_probToPct(doc.completely_generated_prob)}
+    ].filter(x=>x.pct!==null);
+    const selected=candidates.length?candidates.sort((a,b)=>b.pct-a.pct)[0]:{pct:null,source:'none'};
+    return {
+      pct:selected.pct,
+      source:selected.source,
+      predictedClass:doc.predicted_class||doc.prediction||null,
+      confidence:doc.confidence_category||doc.confidence||null,
+      ai:_probToPct(probs.ai),
+      mixed:_probToPct(probs.mixed),
+      human:_probToPct(probs.human),
+      average:_probToPct(doc.average_generated_prob),
+      complete:_probToPct(doc.completely_generated_prob)
+    };
+  }catch(e){return {pct:null,source:'error',predictedClass:null,confidence:null};}
+}
+
+function _gptzeroAiPercent(data){
+  return _gptzeroScoreInfo(data).pct;
 }
 
 // Extract sentences flagged by GPTZero as AI-generated. Returns [{text, prob}] sorted by prob desc.
 // Uses multiple heuristics because GPTZero sentence fields vary across versions.
 function _gptzeroFlaggedSentences(data, minProb=0.5){
   try{
-    const doc=data&&data.documents&&data.documents[0];
+    const doc=_gptzeroDoc(data);
     if(!doc)return [];
-    const sents=doc.sentences||doc.sentence_scores||[];
+    let sents=doc.sentences||doc.sentence_scores||doc.sentence_classifications||doc.sentence_predictions||[];
+    if((!Array.isArray(sents)||!sents.length)&&Array.isArray(doc.paragraphs)){
+      sents=doc.paragraphs.flatMap(p=>p.sentences||p.sentence_scores||[]);
+    }
     if(!Array.isArray(sents)||!sents.length)return [];
     const flagged=[];
     for(const s of sents){
-      const text=(s.sentence||s.text||'').trim();
+      const text=(s.sentence||s.text||s.content||'').trim();
       if(!text||text.length<20)continue; // skip very short fragments
-      const prob=(typeof s.generated_prob==='number'?s.generated_prob
-                 :typeof s.prob==='number'?s.prob
-                 :typeof s.ai_prob==='number'?s.ai_prob
-                 :(s.highlight_sentence_for_ai?0.85:null));
+      let prob=(typeof s.generated_prob==='number'?s.generated_prob
+               :typeof s.generated_probability==='number'?s.generated_probability
+               :typeof s.ai_probability==='number'?s.ai_probability
+               :typeof s.prob==='number'?s.prob
+               :typeof s.ai_prob==='number'?s.ai_prob
+               :typeof s.score==='number'?s.score
+               :(s.highlight_sentence_for_ai||s.is_ai_generated||/ai/i.test(String(s.predicted_class||''))?0.85:null));
+      if(prob!==null&&prob>1)prob=prob/100;
       if(prob===null||prob<minProb)continue;
       flagged.push({text,prob});
     }
     return flagged.sort((a,b)=>b.prob-a.prob);
   }catch(e){return [];}
+}
+
+function _gptzeroDiagnostics(data){
+  const info=_gptzeroScoreInfo(data);
+  const flags=_gptzeroFlaggedSentences(data,0.5);
+  return {
+    score:info.pct,
+    source:info.source,
+    predictedClass:info.predictedClass||'unknown',
+    confidence:info.confidence||'unknown',
+    ai:info.ai,
+    mixed:info.mixed,
+    human:info.human,
+    average:info.average,
+    complete:info.complete,
+    flaggedSentences:flags.length
+  };
+}
+
+function _normForMatch(text){
+  return String(text||'').toLowerCase()
+    .replace(/[“”]/g,'"').replace(/[‘’]/g,"'")
+    .replace(/[–—]/g,'-')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function _replaceApproxSentence(source,target,replacement){
+  if(source.includes(target))return {text:source.replace(target,replacement),matched:true,approx:false};
+  const wanted=_normForMatch(target);
+  if(!wanted)return {text:source,matched:false,approx:false};
+  const parts=String(source||'').match(/[^.!?]+[.!?]+|\n+|[^.!?\n]+$/g)||[];
+  let pos=0;
+  for(const part of parts){
+    const start=pos;
+    pos+=part.length;
+    if(_normForMatch(part)===wanted){
+      return {text:source.slice(0,start)+replacement+source.slice(start+part.length),matched:true,approx:true};
+    }
+  }
+  return {text:source,matched:false,approx:false};
 }
 
 function getAiFlagsFromLastScan(article){
@@ -3517,9 +3589,8 @@ async function humaniseFlaggedSentences(article, data, {tov, brandPov, bannedWor
   const povLine=(brandPov||'').split('\n').slice(0,5).join(' ');
   for(const item of toRewrite){
     const target=item.text;
-    if(!working.includes(target))continue; // sentence may have been altered by a prior rewrite
-    try{
-      const fresh=await aiRoute('humanisation',
+      try{
+        const fresh=await aiRoute('humanisation',
         `You rewrite ONE sentence at a time to destroy AI-detection signals while preserving meaning exactly. No preamble, no quotes, no markdown — return ONLY the rewritten sentence as plain prose. ${tovLine} ${povLine?'Context: '+povLine:''}`.trim(),
         `Rewrite this sentence so it reads like a human practitioner wrote it — break formulaic structure, vary rhythm, use a contraction or informal aside, keep the exact factual content and terminology, match the article's voice.
 
@@ -3534,7 +3605,9 @@ Return ONLY the rewritten sentence.`,
       const clean=(fresh||'').trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g,'').replace(/\s+/g,' ');
       // Guard: skip if the rewrite is suspiciously short/long, empty, or identical
       if(!clean||clean===target||clean.length<Math.max(10,target.length*0.5)||clean.length>target.length*3)continue;
-      working=working.replace(target,clean);
+      const replaced=_replaceApproxSentence(working,target,clean);
+      if(!replaced.matched)continue; // sentence may have been altered by a prior rewrite or normalized by GPTZero
+      working=replaced.text;
       rewritten++;
     }catch(e){
       console.warn('[humaniseFlaggedSentences] rewrite failed for sentence, skipping:',(e.message||e));
@@ -3620,9 +3693,13 @@ async function detectAI(text){
     try{
       const data=await gptzeroPredict(snippet);
       _lastGptzeroData=data;
-      const pct=_gptzeroAiPercent(data);
+      const diag=_gptzeroDiagnostics(data);
+      const pct=diag.score;
       if(pct!==null){
-        console.log('[detectAI] GPTZero:',pct+'%');
+        console.log('[detectAI] GPTZero:',diag);
+        if(typeof plog==='function'){
+          plog('GPTZero diagnostic: score '+pct+'% via '+diag.source+' | class '+diag.predictedClass+' | confidence '+diag.confidence+' | flags '+diag.flaggedSentences,'ldm');
+        }
         return pct;
       }
     }catch(e){console.warn('[detectAI] GPTZero failed, falling back:',e.message||e);}
@@ -6575,23 +6652,38 @@ Return the full polished article. First line must be the TITLE: line.`,
 	  }
 
 	  // AI Detection loop — strict threshold enforcement
-  const thresh=parseInt(cfg.th)||15;
-  const maxRounds=5;
-  let aiBlocked=false;
-  let rewriteHistory=[];
-  let latestAiFlags=[];
-  for(let round=1;round<=maxRounds;round++){
-    try{
-      psd('det','dr');pss('det','Round '+round+'/'+maxRounds+'...');plog('AI detection round '+round+'/'+maxRounds,'lin');
-      aiScore=await detectAI(article);
-      if(rewriteHistory.length && rewriteHistory[rewriteHistory.length-1].afterScore==null){
-        rewriteHistory[rewriteHistory.length-1].afterScore=aiScore;
-        plog('Rewrite result: '+rewriteHistory[rewriteHistory.length-1].beforeScore+'% → '+aiScore+'%','lin');
-      }
-      latestAiFlags=getAiFlagsFromLastScan(article);
-      plog('AI score: '+aiScore+'% (threshold: '+thresh+'%)','lin');
-      if(latestAiFlags.length)plog('Flagged segments: '+latestAiFlags.length+' ('+latestAiFlags.slice(0,3).map(f=>(f.type||'segment')+' '+(f.probability||'')+'%').join(', ')+')','ldm');
-      if(aiScore<=thresh){
+	  const thresh=parseInt(cfg.th)||15;
+	  const maxRounds=5;
+	  let aiBlocked=false;
+	  let aiStopReason='';
+	  let rewriteHistory=[];
+	  let latestAiFlags=[];
+	  for(let round=1;round<=maxRounds;round++){
+	    try{
+	      psd('det','dr');pss('det','Round '+round+'/'+maxRounds+'...');plog('AI detection round '+round+'/'+maxRounds,'lin');
+	      aiScore=await detectAI(article);
+	      if(rewriteHistory.length && rewriteHistory[rewriteHistory.length-1].afterScore==null){
+	        const lastRewrite=rewriteHistory[rewriteHistory.length-1];
+	        lastRewrite.afterScore=aiScore;
+	        const improvement=Number(lastRewrite.beforeScore)-Number(aiScore);
+	        plog('Rewrite result: '+lastRewrite.beforeScore+'% → '+aiScore+'%'+(Number.isFinite(improvement)?' ('+(improvement>0?'-':'')+Math.abs(improvement)+' pts)':''),'lin');
+	        if(aiScore>thresh && Number.isFinite(improvement) && improvement<5){
+	          aiBlocked=true;
+	          aiStopReason='Automatic rewrites stopped early because the detector score did not materially improve after '+lastRewrite.method+'.';
+	          plog(aiStopReason+' Moving to human edit to avoid burning model and GPTZero usage.','ler');
+	          break;
+	        }
+	      }
+	      latestAiFlags=getAiFlagsFromLastScan(article);
+	      plog('AI score: '+aiScore+'% (threshold: '+thresh+'%)','lin');
+	      if(latestAiFlags.length)plog('Flagged segments: '+latestAiFlags.length+' ('+latestAiFlags.slice(0,3).map(f=>(f.type||'segment')+' '+(f.probability||'')+'%').join(', ')+')','ldm');
+	      if(_lastGptzeroData){
+	        const gzDiag=_gptzeroDiagnostics(_lastGptzeroData);
+	        if(aiScore>=90 && gzDiag.flaggedSentences===0){
+	          plog('GPTZero returned a high document score but no sentence-level flags. The app will use paragraph fallback, but this is a weak signal for automatic rewriting.','ldm');
+	        }
+	      }
+	      if(aiScore<=thresh){
         psd('det','do');pss('det',aiScore+'% ✓ passes');pprog(55);
         if(round===1){psd('hum','dk');pss('hum','Not needed');}
         break;
@@ -6674,12 +6766,13 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
           article = humanised;
         }
         psd('hum','do');pss('hum','Round '+round+' complete ('+newWc+'w)');
-      }else{
-        // Final round still above threshold — pause publishing, but keep the draft usable.
-        psd('det','de');pss('det',aiScore+'% ✗ BLOCKED — exceeds '+thresh+'%');pprog(55);
-        plog('PUBLISHING BLOCKED: Draft is ready, but after '+maxRounds+' rewrite rounds the AI score is still '+aiScore+'% (threshold: '+thresh+'%).','ler');
-        aiBlocked=true;
-      }
+	      }else{
+	        // Final round still above threshold — pause publishing, but keep the draft usable.
+	        psd('det','de');pss('det',aiScore+'% ✗ BLOCKED — exceeds '+thresh+'%');pprog(55);
+	        aiStopReason='After '+maxRounds+' rewrite rounds, the AI score is still '+aiScore+'% (threshold: '+thresh+'%).';
+	        plog('PUBLISHING BLOCKED: Draft is ready, but '+aiStopReason,'ler');
+	        aiBlocked=true;
+	      }
     }catch(e){
       psd('det','do');pss('det','Skipped (error)');aiScore=0;
       plog('Detection skipped: '+e.message,'ler');break;
@@ -6697,7 +6790,7 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
     psd('hs','dk');pss('hs','Blocked');
     psd('soc','dk');pss('soc','Blocked');
     qi.status='human_edit';qi.aiScore=aiScore;qi.generatedAiScore=aiScore;qi.aiThreshold=thresh;
-    qi.errorReason='Needs human edit: AI detection score ('+aiScore+'%) exceeded '+thresh+'% threshold after '+maxRounds+' rewrite attempts';
+	    qi.errorReason='Needs human edit: AI detection score ('+aiScore+'%) exceeded '+thresh+'% threshold. '+(aiStopReason||('Automatic rewrite attempts reached '+maxRounds+' rounds.'));
     qi.generatedTitle=title;qi.generatedArticle=article;qi.generatedHtml='<div>'+markdownToHtml(article)+'</div>';
     qi.aiFlags=latestAiFlags.length?latestAiFlags:getAiFlagsFromLastScan(article);
     qi.aiRewriteHistory=rewriteHistory;
