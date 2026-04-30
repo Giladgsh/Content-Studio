@@ -492,75 +492,80 @@ html.dark .log-icon.hubspot{background:rgba(218,107,96,0.15);color:#F19B92}
 .log-user{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
 
 /* ══════════════════════════════════════════════════════════════
-   LOGIN SCREEN — deep ink + warm card
+   LOGIN SCREEN — FinMP Content Studio
    ══════════════════════════════════════════════════════════════ */
 .login-overlay{
-  position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;background:#16110C;transition:opacity .3s;
+  position:fixed;inset:0;z-index:9999;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(380px,.95fr);
+  background:#05060f;color:#f5f6fa;transition:opacity .3s;overflow:hidden;
 }
 .login-overlay.hidden{opacity:0;pointer-events:none;visibility:hidden;display:none !important}
 .login-overlay::before{
   content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse at 50% 0%,rgba(180,113,56,0.10) 0%,transparent 65%);
+  background:
+    linear-gradient(135deg,rgba(27,23,229,.32),transparent 38%),
+    linear-gradient(28deg,rgba(122,91,255,.22),transparent 54%),
+    radial-gradient(circle at 70% 20%,rgba(255,201,163,.14),transparent 26rem);
   pointer-events:none;
 }
-.login-header{position:absolute;top:0;left:0;right:0;padding:28px 40px;display:flex;align-items:center;z-index:1}
-.login-header img{height:28px;filter:brightness(0) invert(1)}
+.login-header{position:absolute;top:0;left:0;right:0;padding:30px 38px;display:flex;align-items:center;z-index:2}
+.login-header img{height:30px;filter:brightness(0) invert(1)}
+.login-visual{position:relative;z-index:1;display:flex;align-items:flex-end;padding:96px 48px 72px}
+.login-visual-inner{max-width:760px}
+.login-kicker{font-size:12px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:#9098b0;margin-bottom:18px}
+.login-hero-title{font-size:clamp(48px,6vw,86px);line-height:.92;font-weight:760;letter-spacing:-.055em;margin:0;max-width:720px}
+.login-hero-title span{background:linear-gradient(135deg,#fff,#8f8cff 55%,#ffc9a3 120%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.login-hero-copy{max-width:560px;margin-top:22px;color:#b9c0d6;font-size:16px;line-height:1.7}
+.login-visual-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:34px;max-width:640px}
+.login-chip{border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px;background:rgba(17,19,43,.58);backdrop-filter:blur(16px)}
+.login-chip span{display:block;color:#6f7792;font-size:10px;font-weight:850;letter-spacing:.18em;text-transform:uppercase}
+.login-chip strong{display:block;margin-top:8px;font-size:18px;color:#fff}
+.login-panel-wrap{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;padding:80px 48px}
 .login-box{
-  background:#FAF4E7;border:none;border-radius:18px;padding:48px 44px 40px;
-  width:424px;max-width:92vw;box-shadow:0 24px 72px rgba(0,0,0,0.5),0 4px 16px rgba(0,0,0,0.3);
-  text-align:center;position:relative;z-index:1;
+  width:440px;max-width:100%;padding:34px;border:1px solid rgba(255,255,255,.12);border-radius:26px;
+  background:rgba(17,19,43,.78);box-shadow:0 34px 110px -48px rgba(27,23,229,.7),0 0 0 1px rgba(255,255,255,.04);
+  text-align:left;backdrop-filter:blur(20px);
 }
-html.dark .login-box{background:#1F1914}
 .login-logo-img{margin-bottom:24px}
-.login-logo-img img{height:34px}
+.login-logo-img img{height:28px;filter:brightness(0) invert(1)}
 .login-app-badge{
-  display:inline-flex;align-items:center;gap:7px;background:rgba(180,113,56,0.12);color:var(--accent-deep);
-  padding:6px 14px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.08em;
-  text-transform:uppercase;margin-bottom:12px;
+  display:inline-flex;align-items:center;gap:8px;background:rgba(27,23,229,.18);color:#c8c7ff;
+  padding:7px 12px;border:1px solid rgba(122,91,255,.32);border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;margin-bottom:18px;
 }
-html.dark .login-app-badge{background:rgba(212,145,85,0.15);color:var(--accent-deep)}
-.login-app-badge .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
-.login-title{
-  font-family:var(--display);font-size:28px;font-weight:600;margin-bottom:6px;
-  letter-spacing:-0.02em;color:#16110C;line-height:1.15;
-}
-html.dark .login-title{color:#F4EAD5}
-.login-sub{font-size:14px;color:var(--text2);margin-bottom:32px}
-html.dark .login-sub{color:#B5A689}
-.login-field{position:relative;margin-bottom:18px;text-align:left}
-.login-field label{
-  display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px;
-  text-transform:uppercase;letter-spacing:0.08em;
-}
-html.dark .login-field label{color:#B5A689}
+.login-app-badge .badge-dot{width:7px;height:7px;border-radius:50%;background:#22c58a;box-shadow:0 0 18px rgba(34,197,138,.65)}
+.login-title{font-size:31px;font-weight:760;margin-bottom:7px;letter-spacing:-.04em;color:#fff;line-height:1.08}
+.login-sub{font-size:14px;color:#9ca4bd;margin-bottom:28px;line-height:1.55}
+.login-field{position:relative;margin-bottom:16px;text-align:left}
+.login-field label{display:block;font-size:11px;font-weight:800;color:#7e86a0;margin-bottom:7px;text-transform:uppercase;letter-spacing:.14em}
 .login-field input{
-  padding:14px 16px;font-size:14px;border-radius:10px;text-align:left;
-  border:1px solid #E0D3B4;background:#FFFFFF;transition:all .15s;
+  width:100%;padding:14px 15px;font-size:14px;border-radius:14px;text-align:left;
+  border:1px solid #2a2e55;background:rgba(5,6,15,.48);color:#f5f6fa;transition:all .15s;
 }
-html.dark .login-field input{border-color:#3A312A;background:#2D251D;color:#F4EAD5}
-.login-field input:focus{border-color:var(--accent);background:#FFFFFF;box-shadow:0 0 0 3px var(--accent-soft)}
-html.dark .login-field input:focus{border-color:var(--accent);background:#2D251D;box-shadow:0 0 0 3px rgba(212,145,85,0.2)}
-.login-field input::placeholder{color:#B8A88E}
+.login-field input:focus{outline:none;border-color:#7a5bff;background:rgba(5,6,15,.72);box-shadow:0 0 0 4px rgba(122,91,255,.18)}
+.login-field input::placeholder{color:#646b85}
 .login-btn{
-  width:100%;padding:15px;font-size:14px;font-weight:600;border-radius:10px;border:none;
-  background:#16110C;color:#FAF4E7;cursor:pointer;font-family:var(--font);transition:all .2s;letter-spacing:0.02em;
+  width:100%;padding:15px 16px;font-size:14px;font-weight:750;border-radius:999px;border:1px solid #1b17e5;
+  background:#1b17e5;color:#fff;cursor:pointer;font-family:var(--font);transition:all .2s;letter-spacing:0;
+  box-shadow:0 14px 40px -12px rgba(27,23,229,.72);
 }
-html.dark .login-btn{background:var(--accent);color:#16110C}
-.login-btn:hover{background:#2A1F15;transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,0.3)}
-html.dark .login-btn:hover{background:var(--accent-deep)}
-.login-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
-.login-error{font-size:12px;color:var(--red);margin-top:12px;min-height:18px}
-html.dark .login-error{color:var(--red-text)}
-.login-footer{font-size:11px;color:var(--text3);margin-top:22px;line-height:1.55}
-html.dark .login-footer{color:#85775E}
+.login-btn:hover{background:#3d3af0;border-color:#3d3af0;transform:translateY(-1px)}
+.login-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+.login-error{font-size:12px;color:#ff9d95;margin-top:12px;min-height:18px}
+.login-footer{font-size:12px;color:#747c98;margin-top:20px;line-height:1.55}
+.login-link{font-size:12px;color:#bfc3ff;text-decoration:none}
+.login-link:hover{color:#fff}
 .login-bottom{
-  position:absolute;bottom:0;left:0;right:0;padding:24px 40px;
-  display:flex;align-items:center;justify-content:center;gap:28px;z-index:1;
+  position:absolute;bottom:0;left:0;right:0;padding:22px 38px;
+  display:flex;align-items:center;justify-content:center;gap:28px;z-index:2;
 }
-.login-bottom a{font-size:11px;color:rgba(244,234,213,0.45);text-decoration:none;transition:color .15s}
-.login-bottom a:hover{color:rgba(244,234,213,0.85)}
-.login-bottom .copyright{font-size:11px;color:rgba(244,234,213,0.28)}
+.login-bottom a,.login-bottom .copyright{font-size:11px;color:rgba(245,246,250,.42);text-decoration:none}
+.login-bottom a:hover{color:rgba(245,246,250,.9)}
+@media(max-width:980px){
+  .login-overlay{grid-template-columns:1fr;overflow:auto}
+  .login-visual{display:none}
+  .login-panel-wrap{min-height:100vh;padding:92px 22px 86px}
+  .login-bottom{position:fixed;gap:14px;flex-wrap:wrap}
+}
 
 /* ══════════════════════════════════════════════════════════════
    FINMP SAAS SHELL — v36 visual direction
@@ -942,64 +947,79 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
 <!-- LOGIN SCREEN -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-header">
-    <a href="https://obtained.com" target="_blank"><img src="https://obtained.com/hubfs/logo.svg" alt="Obtained"></a>
+    <a href="https://finmp-contentapp-website.netlify.app/" target="_blank"><img src="https://finmp-contentapp-website.netlify.app/finmp-logo.png" alt="FinMP"></a>
   </div>
-  <div class="login-box">
-    <div class="login-logo-img"><img src="https://obtained.com/hubfs/logo.svg" alt="Obtained" style="height:30px"></div>
-    <div class="login-app-badge"><span class="badge-dot"></span> Content Studio</div>
-    <div class="login-title">Sign in</div>
-    <div class="login-sub">Access the content pipeline</div>
-    <!-- Sign in form -->
-    <div id="loginForm">
-      <form onsubmit="handleLogin(event)">
-        <div class="login-field">
-          <label>Email</label>
-          <input type="email" id="loginUser" placeholder="you@obtained.com" autocomplete="email" required/>
-        </div>
-        <div class="login-field">
-          <label>Password</label>
-          <input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password" required/>
-        </div>
-        <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
-        <div class="login-error" id="loginError"></div>
-      </form>
-      <div style="margin-top:14px">
-        <a href="#" onclick="showForgotPw();return false" style="font-size:11px;color:#666;text-decoration:none">Forgot your password?</a>
+  <section class="login-visual" aria-hidden="true">
+    <div class="login-visual-inner">
+      <div class="login-kicker">FinMP SaaS workspace</div>
+      <h1 class="login-hero-title">Content operations for <span>regulated growth teams.</span></h1>
+      <p class="login-hero-copy">Plan topics, run evidence-led article pipelines, manage assets, and publish through client-owned integrations from one secure workspace.</p>
+      <div class="login-visual-grid">
+        <div class="login-chip"><span>Model routing</span><strong>GPT + Claude</strong></div>
+        <div class="login-chip"><span>Assets</span><strong>Multi-site</strong></div>
+        <div class="login-chip"><span>Workflow</span><strong>Review gates</strong></div>
       </div>
-      <div class="login-footer">Access restricted to the obtained.com team.<br/>Contact your admin if you need an account.</div>
     </div>
+  </section>
+  <div class="login-panel-wrap">
+    <div class="login-box">
+      <div class="login-logo-img"><img src="https://finmp-contentapp-website.netlify.app/finmp-logo.png" alt="FinMP"></div>
+      <div class="login-app-badge"><span class="badge-dot"></span> Content Studio</div>
+      <div class="login-title">Sign in to your workspace</div>
+      <div class="login-sub">Secure access for client content teams, reviewers, and FinMP ops admins.</div>
+      <!-- Sign in form -->
+      <div id="loginForm">
+        <form onsubmit="handleLogin(event)">
+          <div class="login-field">
+            <label>Email</label>
+            <input type="email" id="loginUser" placeholder="gilad@finmp.com" autocomplete="email" required/>
+          </div>
+          <div class="login-field">
+            <label>Password</label>
+            <input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password" required/>
+          </div>
+          <button type="submit" class="login-btn" id="loginBtn">Sign in</button>
+          <div class="login-error" id="loginError"></div>
+        </form>
+        <div style="margin-top:14px">
+          <a href="#" onclick="showForgotPw();return false" class="login-link">Forgot your password?</a>
+        </div>
+        <div class="login-footer">Access is controlled by Supabase authentication and client membership.</div>
+      </div>
 
-    <!-- Forgot password form -->
-    <div id="forgotForm" style="display:none">
-      <div style="font-size:13px;font-weight:600;margin-bottom:6px">Reset your password</div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:16px">Enter your email address. If an admin has set up a security question for your account, you can reset it yourself. Otherwise a reset request will be sent to your admin.</div>
-      <div class="login-field">
-        <input type="email" id="forgotEmail" placeholder="Your email address" autocomplete="email"/>
-      </div>
-      <div id="forgotStep2" style="display:none">
+      <!-- Forgot password form -->
+      <div id="forgotForm" style="display:none">
+        <div style="font-size:19px;font-weight:760;margin-bottom:6px;color:#fff;letter-spacing:-.02em">Reset access</div>
+        <div style="font-size:13px;color:#9ca4bd;margin-bottom:18px;line-height:1.5">Enter your email address. If self-service reset is unavailable, a reset request will be routed to an admin.</div>
         <div class="login-field">
-          <input type="text" id="forgotAnswer" placeholder="Answer to your security question" autocomplete="off"/>
+          <input type="email" id="forgotEmail" placeholder="Your email address" autocomplete="email"/>
         </div>
-        <div style="font-size:10px;color:var(--text3);margin:-10px 0 14px;text-align:left" id="forgotQuestion"></div>
-        <div class="login-field">
-          <input type="password" id="forgotNewPw" placeholder="New password (min 6 characters)" autocomplete="new-password"/>
+        <div id="forgotStep2" style="display:none">
+          <div class="login-field">
+            <input type="text" id="forgotAnswer" placeholder="Answer to your security question" autocomplete="off"/>
+          </div>
+          <div style="font-size:11px;color:#7e86a0;margin:-8px 0 14px;text-align:left" id="forgotQuestion"></div>
+          <div class="login-field">
+            <input type="password" id="forgotNewPw" placeholder="New password (min 6 characters)" autocomplete="new-password"/>
+          </div>
+          <button type="button" class="login-btn" onclick="resetWithQuestion()">Reset password</button>
         </div>
-        <button type="button" class="login-btn" onclick="resetWithQuestion()">Reset password</button>
-      </div>
-      <div id="forgotStep1" style="display:block">
-        <button type="button" class="login-btn" onclick="handleForgotPw()">Continue</button>
-      </div>
-      <div class="login-error" id="forgotError"></div>
-      <div id="forgotSuccess" style="display:none;font-size:11px;color:var(--green);margin-top:10px;font-weight:600"></div>
-      <div style="margin-top:14px">
-        <a href="#" onclick="showLoginForm();return false" style="font-size:11px;color:#666;text-decoration:none">← Back to sign in</a>
+        <div id="forgotStep1" style="display:block">
+          <button type="button" class="login-btn" onclick="handleForgotPw()">Continue</button>
+        </div>
+        <div class="login-error" id="forgotError"></div>
+        <div id="forgotSuccess" style="display:none;font-size:12px;color:#22c58a;margin-top:10px;font-weight:700"></div>
+        <div style="margin-top:14px">
+          <a href="#" onclick="showLoginForm();return false" class="login-link">Back to sign in</a>
+        </div>
       </div>
     </div>
   </div>
   <div class="login-bottom">
-    <a href="https://obtained.com/terms-conditions" target="_blank">Terms of use</a>
-    <a href="https://obtained.com/privacy-policy" target="_blank">Privacy policy</a>
-    <span class="copyright">© 2023-2026 Obtained Ltd.</span>
+    <a href="https://finmp-contentapp-website.netlify.app/" target="_blank">FinMP</a>
+    <a href="https://obtained.com/terms-conditions" target="_blank">Terms</a>
+    <a href="https://obtained.com/privacy-policy" target="_blank">Privacy</a>
+    <span class="copyright">© 2026 Content Studio</span>
   </div>
 </div>
 
@@ -1275,7 +1295,7 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
         </div>
         <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.04em;text-transform:uppercase;margin:14px 0 10px">Competitor gap</div>
         <div class="fi" style="margin-bottom:4px">
-          <label>How this article should differentiate from your competitors <span style="font-weight:400;color:var(--text3)">(gap angle — the edge GPT-4o will steer the article toward)</span></label>
+          <label>How this article should differentiate from your competitors <span style="font-weight:400;color:var(--text3)">(gap angle — the model route will steer the article toward)</span></label>
           <textarea id="wzCompGap" rows="3" placeholder="Auto-populated after research — cites the specific competitors in this vertical" style="font-size:13px"></textarea>
         </div>
         <div id="wzAhrefsBadges" style="margin-top:14px"></div>
@@ -1372,7 +1392,7 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
     <div id="compEmpty" class="empty">No competitors added for this site yet. Add the first one above — it'll start appearing in the wizard's SEO/AEO research step.</div>
     <div id="compList"></div>
   </div>
-  <div class="notice" style="margin-top:10px">💡 <strong>How this is used:</strong> When you (or any teammate) creates an article via <em>Add your own topic</em>, Step 3 passes the matching competitors for the selected site + vertical to GPT-4o. The resulting keywords, AEO phrases, and content-gap notes are explicitly designed to beat these competitors on Google and in AI search engines.</div>
+  <div class="notice" style="margin-top:10px">💡 <strong>How this is used:</strong> When you (or any teammate) creates an article via <em>Add your own topic</em>, Step 3 passes the matching competitors for the selected site + vertical to the SEO/AEO model route. The resulting keywords, AEO phrases, and content-gap notes are explicitly designed to beat these competitors on Google and in AI search engines.</div>
 </div>
 
 <!-- ══ QUEUE ══ -->
@@ -2056,9 +2076,27 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
         <div class="fi"><label>Facebook channel ID</label><input id="sfb" placeholder="HubSpot social account ID"/></div>
       </div>
     </div>
-    <div>
-      <div class="card">
-        <div class="ct" style="margin-bottom:12px">Publish defaults</div>
+	    <div>
+	      <div class="card">
+	        <div class="ct" style="margin-bottom:12px">AI policy</div>
+	        <div class="notice" style="margin-bottom:12px">Model names stay hidden from client users. This policy controls routing quality and review strictness; client, asset, and category overrides will come next.</div>
+	        <div class="fi">
+	          <label>Default content mode</label>
+	          <select id="saimode">
+	            <option value="standard">Standard — efficient generation and normal review</option>
+	            <option value="research">Research-heavy — stronger source grounding</option>
+	            <option value="regulated" selected>Regulated / compliance-sensitive — strict review gate</option>
+	            <option value="premium">Premium quality — strongest routing and review</option>
+	          </select>
+	          <div class="hint">Regulated categories are always reviewed strictly. This setting lets FinMP make the whole workspace stricter when needed.</div>
+	        </div>
+	        <div class="g2">
+	          <div class="stat"><div class="sv" style="font-size:18px">GPT-5 route</div><div class="sl2">Research, draft, SEO/AEO, review</div></div>
+	          <div class="stat"><div class="sv" style="font-size:18px">Claude Sonnet</div><div class="sl2">Humanisation and editorial rewrite</div></div>
+	        </div>
+	      </div>
+	      <div class="card">
+	        <div class="ct" style="margin-bottom:12px">Publish defaults</div>
         <div class="notice" style="margin-bottom:12px">Temporary global defaults. In the SaaS model, these move to client, asset, and category policies.</div>
         <div class="fi"><label>Default publish time</label><input type="time" id="spt" value="09:00"/></div>
         <div class="fi"><label>Publish offset (days ahead)</label><input type="number" id="spo" min="0" max="30" value="1"/></div>
@@ -2988,7 +3026,36 @@ function clearActivityLog(){
   renderActivityLog();
 }
 
-const MODEL='claude-sonnet-4-20250514';
+const CLAUDE_SONNET='claude-sonnet-4-20250514';
+const CLAUDE_OPUS='claude-opus-4-1-20250805';
+const CLAUDE_HAIKU='claude-3-5-haiku-20241022';
+const MODEL=CLAUDE_SONNET;
+const AI_MODEL_ROUTES={
+  dailyBrief:{openai:['gpt-5-mini','gpt-4o-mini'],label:'Daily brief scan'},
+  topicAngle:{openai:['gpt-5-mini'],claude:[CLAUDE_SONNET],label:'Topic and angle shaping'},
+  evidenceBrief:{openai:['gpt-5.5','gpt-5-mini'],claude:[CLAUDE_OPUS],label:'Evidence and fact brief'},
+  articleDraft:{openai:['gpt-5.5','gpt-5-mini'],claude:[CLAUDE_SONNET],label:'Full article draft'},
+  humanisation:{claude:[CLAUDE_SONNET],openai:['gpt-5-mini'],label:'Humanisation and editorial rewrite'},
+  seoAeo:{openai:['gpt-5-mini','gpt-4o-mini'],label:'SEO and AEO metadata'},
+  complianceReview:{openai:['gpt-5.5','gpt-5-mini'],claude:[CLAUDE_OPUS],label:'Compliance and factual review gate'},
+  fastFallback:{openai:['gpt-4o-mini'],claude:[CLAUDE_HAIKU],label:'Emergency fast fallback'}
+};
+function aiModelLabel(model){
+  return String(model||'model').replace('gpt-','GPT-').replace('claude-sonnet-4-20250514','Claude Sonnet 4').replace('claude-opus-4-1-20250805','Claude Opus 4.1').replace('claude-3-5-haiku-20241022','Claude Haiku 3.5');
+}
+function routeModels(stage,provider){
+  const route=AI_MODEL_ROUTES[stage]||AI_MODEL_ROUTES.fastFallback;
+  let models=[...(route[provider]||[])];
+  const mode=(S&&S.settings&&S.settings.aiMode)||'regulated';
+  if(provider==='openai'&&stage==='articleDraft'&&mode==='standard')models=['gpt-5-mini'];
+  if(provider==='openai'&&stage==='articleDraft'&&mode==='research')models=['gpt-5.5','gpt-5-mini'];
+  if(provider==='openai'&&stage==='seoAeo'&&mode==='premium')models=['gpt-5-mini','gpt-4o-mini'];
+  return models;
+}
+function shouldFallbackAiError(err){
+  const msg=String(err?.message||err||'');
+  return /hosted function|took longer|timed out|timeout|model|not found|unsupported|invalid|overloaded|rate limit|temporarily|unavailable|empty response/i.test(msg);
+}
 // HS_TOKEN is intentionally empty — a stale hardcoded token was the cause of
 // silent "Authentication credentials not found" errors in prior versions.
 // Admin must save a valid private-app token via Settings → HubSpot private app token.
@@ -3001,7 +3068,7 @@ let S=def();
 let selIds=new Set();
 let running=false;
 
-function def(){return{sites:{obtained:{topics:[],queue:[],published:[],lastScan:null},nevis:{topics:[],queue:[],published:[],lastScan:null}},tovs:[],activeTovId:null,settings:{anthropicKey:'',openaiKey:'',sapling:'',hsToken:HS_TOKEN,hsBlog:HS_BLOG,li:'',fb:'',pt:'09:00',po:1,wc:'900',th:20,cta:'Ready to simplify your payments or navigate licensing? Visit obtained.com to explore our solutions.'}};}
+function def(){return{sites:{obtained:{topics:[],queue:[],published:[],lastScan:null},nevis:{topics:[],queue:[],published:[],lastScan:null}},tovs:[],activeTovId:null,settings:{anthropicKey:'',openaiKey:'',sapling:'',hsToken:HS_TOKEN,hsBlog:HS_BLOG,li:'',fb:'',pt:'09:00',po:1,wc:'900',th:20,aiMode:'regulated',cta:'Ready to simplify your payments or navigate licensing? Visit obtained.com to explore our solutions.'}};}
 
 // ── Per-site data helpers ──
 function siteData(){if(!S.sites)S.sites={obtained:{topics:[],queue:[],published:[],lastScan:null},nevis:{topics:[],queue:[],published:[],lastScan:null}};if(!S.sites[activeSite])S.sites[activeSite]={topics:[],queue:[],published:[],lastScan:null};return S.sites[activeSite];}
@@ -3213,10 +3280,11 @@ async function postSaasApi(endpoint, body){
   return {r,d};
 }
 
-function cleanSaasError(message){
+function cleanSaasError(message, context='general'){
   const raw=String(message||'Unknown error').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
   if(/Inactivity Timeout|Too much time has passed/i.test(raw)){
-    return 'The scan took too long for the hosted function. I used fallback topics for now; try again in a moment.';
+    if(context==='topic_scan')return 'The scan took too long for the hosted function. I used fallback topics for now; try again in a moment.';
+    return 'The article generation request took longer than the hosted function allows. I will retry with a faster compact draft path.';
   }
   if(/not authenticated|expired session|invalid session/i.test(raw)){
     return 'Your session expired. Please sign out, sign in again, and retry the scan.';
@@ -3228,15 +3296,16 @@ function cleanSaasError(message){
 }
 
 async function fastTopicScan(sys,usr,maxTok=2200){
-  return openai(sys,usr,maxTok,{operation:'topic_scan',model:'gpt-4o-mini',temperature:0.7});
+  return openaiRoute('dailyBrief',sys,usr,maxTok,{operation:'topic_scan',temperature:0.7});
 }
 
-async function claude(sys,usr,maxTok=1000){
+async function claude(sys,usr,maxTok=1000,opts={}){
   const isAdmin=isCurrentUserAdmin();
-  const payload={model:MODEL,max_tokens:maxTok,system:[{type:'text',text:sys}],messages:[{role:'user',content:usr}]};
-  const {r,d}=await postSaasApi('claude',{clientId:activeClientId,operation:'article_generation',...payload});
+  const payload={model:opts.model||MODEL,max_tokens:maxTok,system:[{type:'text',text:sys}],messages:[{role:'user',content:usr}]};
+  if(opts.temperature!==undefined)payload.temperature=opts.temperature;
+  const {r,d}=await postSaasApi('claude',{clientId:activeClientId,operation:opts.operation||'article_generation',...payload});
   if(!r.ok){
-    const rawMsg=cleanSaasError(d?.error?.message||d?.message||JSON.stringify(d)||'Unknown API error (HTTP '+r.status+')');
+    const rawMsg=cleanSaasError(d?.error?.message||d?.message||JSON.stringify(d)||'Unknown API error (HTTP '+r.status+')','article_generation');
     if(!isAdmin && /api key|anthropic_api_key|credential/i.test(rawMsg)){
       throw new Error('Content generation is temporarily unavailable. Please ask your admin to verify the org-wide API keys in Settings.');
     }
@@ -3252,9 +3321,7 @@ async function claude(sys,usr,maxTok=1000){
 // ── OpenAI Chat (for topic generation alongside Claude) ──
 async function openaiChat(sys,usr,maxTok=1000){
   try{
-    const {r,d}=await postSaasApi('openai',{clientId:activeClientId,operation:'topic_scan',model:'gpt-4o',max_tokens:maxTok,temperature:0.8,messages:[{role:'system',content:sys},{role:'user',content:usr}]});
-    if(!r.ok)return null;
-    return d.choices?.[0]?.message?.content||null;
+    return await openaiRoute('topicAngle',sys,usr,maxTok,{operation:'topic_scan',temperature:0.8});
   }catch(e){console.warn('OpenAI chat failed:',e);return null;}
 }
 
@@ -3274,7 +3341,7 @@ async function openai(sys,usr,maxTok=1500,opts={}){
   if(opts.responseFormat==='json')payload.response_format={type:'json_object'};
   const {r,d}=await postSaasApi('openai',{clientId:activeClientId,operation:opts.operation||'article_generation',...payload});
   if(!r.ok){
-    const rawMsg=cleanSaasError(d?.error?.message||d?.message||JSON.stringify(d)||'Unknown OpenAI error (HTTP '+r.status+')');
+    const rawMsg=cleanSaasError(d?.error?.message||d?.message||JSON.stringify(d)||'Unknown OpenAI error (HTTP '+r.status+')',opts.operation||'article_generation');
     if(!isAdmin && /api key|openai_api_key|credential|authorization/i.test(rawMsg)){
       throw new Error('Content generation is temporarily unavailable. Please ask your admin to verify the org-wide OpenAI API key in Settings.');
     }
@@ -3286,6 +3353,63 @@ async function openai(sys,usr,maxTok=1500,opts={}){
     throw new Error('Empty response from OpenAI — check your API key and billing at platform.openai.com');
   }
   return content;
+}
+
+async function openaiRoute(stage,sys,usr,maxTok=1500,opts={}){
+  const models=opts.models||routeModels(stage,'openai');
+  let lastErr=null;
+  for(let i=0;i<models.length;i++){
+    const model=models[i];
+    try{
+      const result=await openai(sys,usr,maxTok,{...opts,model});
+      if(i>0&&typeof plog==='function')plog((AI_MODEL_ROUTES[stage]?.label||stage)+' succeeded with '+aiModelLabel(model),'lok');
+      return result;
+    }catch(e){
+      lastErr=e;
+      const next=models[i+1];
+      if(!next||!shouldFallbackAiError(e))break;
+      if(typeof plog==='function')plog((AI_MODEL_ROUTES[stage]?.label||stage)+' fallback: '+aiModelLabel(model)+' failed, trying '+aiModelLabel(next),'ldm');
+    }
+  }
+  throw lastErr||new Error('OpenAI route failed.');
+}
+
+async function claudeRoute(stage,sys,usr,maxTok=1000,opts={}){
+  const models=opts.models||routeModels(stage,'claude');
+  let lastErr=null;
+  for(let i=0;i<models.length;i++){
+    const model=models[i];
+    try{
+      const result=await claude(sys,usr,maxTok,{...opts,model});
+      if(i>0&&typeof plog==='function')plog((AI_MODEL_ROUTES[stage]?.label||stage)+' succeeded with '+aiModelLabel(model),'lok');
+      return result;
+    }catch(e){
+      lastErr=e;
+      const next=models[i+1];
+      if(!next||!shouldFallbackAiError(e))break;
+      if(typeof plog==='function')plog((AI_MODEL_ROUTES[stage]?.label||stage)+' fallback: '+aiModelLabel(model)+' failed, trying '+aiModelLabel(next),'ldm');
+    }
+  }
+  throw lastErr||new Error('Claude route failed.');
+}
+
+async function aiRoute(stage,sys,usr,maxTok=1500,opts={}){
+  const openaiModels=opts.openaiModels||routeModels(stage,'openai');
+  const claudeModels=opts.claudeModels||routeModels(stage,'claude');
+  let lastErr=null;
+  if(stage==='humanisation'&&claudeModels.length){
+    try{return await claudeRoute(stage,sys,usr,maxTok,{...opts,models:claudeModels});}
+    catch(e){lastErr=e;if(openaiModels.length&&typeof plog==='function')plog((AI_MODEL_ROUTES[stage]?.label||stage)+' switching from Claude to OpenAI fallback','ldm');}
+  }
+  if(openaiModels.length){
+    try{return await openaiRoute(stage,sys,usr,maxTok,{...opts,models:openaiModels});}
+    catch(e){lastErr=e;if(claudeModels.length&&typeof plog==='function')plog((AI_MODEL_ROUTES[stage]?.label||stage)+' switching from OpenAI to Claude fallback','ldm');}
+  }
+  if(stage!=='humanisation'&&claudeModels.length){
+    try{return await claudeRoute(stage,sys,usr,maxTok,{...opts,models:claudeModels});}
+    catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error('No AI route configured for '+stage);
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -3395,7 +3519,7 @@ async function humaniseFlaggedSentences(article, data, {tov, brandPov, bannedWor
     const target=item.text;
     if(!working.includes(target))continue; // sentence may have been altered by a prior rewrite
     try{
-      const fresh=await openai(
+      const fresh=await aiRoute('humanisation',
         `You rewrite ONE sentence at a time to destroy AI-detection signals while preserving meaning exactly. No preamble, no quotes, no markdown — return ONLY the rewritten sentence as plain prose. ${tovLine} ${povLine?'Context: '+povLine:''}`.trim(),
         `Rewrite this sentence so it reads like a human practitioner wrote it — break formulaic structure, vary rhythm, use a contraction or informal aside, keep the exact factual content and terminology, match the article's voice.
 
@@ -3405,7 +3529,7 @@ Sentence: "${target}"
 
 Return ONLY the rewritten sentence.`,
         250,
-        {model:'gpt-4.1',temperature:0.95}
+        {temperature:0.9,operation:'humanisation'}
       );
       const clean=(fresh||'').trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g,'').replace(/\s+/g,' ');
       // Guard: skip if the rewrite is suspiciously short/long, empty, or identical
@@ -3432,11 +3556,11 @@ async function humaniseLikelyAiParagraphs(article, {tov, brandPov, bannedWords, 
   for(const item of flagged){
     if(!working.includes(item.text))continue;
     try{
-      const fresh=await openai(
+      const fresh=await aiRoute('humanisation',
         `You rewrite ONE flagged paragraph at a time to remove AI-detection patterns while preserving exact facts, names, numbers, jurisdictions, claims, and SEO terms. No preamble, no markdown fences. ${tovLine} ${povLine?'Context: '+povLine:''}`.trim(),
         `Rewrite this paragraph only. Keep every factual claim intact. Make the rhythm less uniform, remove generic phrasing, add a practitioner-style cadence, and keep it precise for regulated fintech/crypto/licensing content.\n\nFlag reason: ${item.reason}\nBanned words: ${banList}\n\nParagraph:\n${item.text}\n\nReturn only the rewritten paragraph.`,
         Math.min(900, Math.max(300, item.text.split(/\s+/).length*3)),
-        {model:'gpt-4.1',temperature:0.85}
+        {temperature:0.8,operation:'humanisation'}
       );
       const clean=(fresh||'').trim().replace(/^```[\s\S]*?\n?/,'').replace(/\n?```$/,'').replace(/\s+/g,' ');
       if(!clean||clean.length<item.text.length*0.65||clean.length>item.text.length*2.2)continue;
@@ -3513,13 +3637,59 @@ async function detectAI(text){
   }
   // 3. Claude estimate (always-available fallback — doesn't cost an external detector call)
   try{
-    const res=await claude(
+    const res=await claudeRoute('fastFallback',
       'You are an AI-content detector. Analyse text and return ONLY valid JSON: {"score":0-100,"reasons":["..."]}. score 0=fully human, 100=clearly AI-generated.',
-      `Analyse this text for AI writing patterns (repetitive structure, perfect parallelism, hedging language, unnatural transitions). Score it 0-100:\n\n${snippet.substring(0,2500)}`
+      `Analyse this text for AI writing patterns (repetitive structure, perfect parallelism, hedging language, unnatural transitions). Score it 0-100:\n\n${snippet.substring(0,2500)}`,
+      700,
+      {temperature:0.2,operation:'ai_detection_estimate'}
     );
     const j=JSON.parse(res.match(/\{[\s\S]*\}/)?.[0]||'{}');
     return Math.min(100,Math.max(0,Math.round(j.score||15)));
   }catch(e){return 15;}
+}
+
+function isRegulatedContent(qi){
+  const mode=(S.settings&&S.settings.aiMode)||'regulated';
+  if(mode==='regulated'||mode==='premium')return true;
+  const hay=[qi?.category,qi?.title,qi?.angle,qi?.namedEntity,(qi?.keywords||[]).join(' ')].join(' ').toLowerCase();
+  return /fintech|casp|vasp|crypto|mica|payment|licen[cs]|regulat|compliance|aml|kyc|gaming|gambling|igaming|investment|fund|financial|bank|fca|mfsa|cysec|eba|esma|noga|nevis/.test(hay);
+}
+
+async function complianceReviewArticle(qi,title,article){
+  const site=qi.targetSite==='nevis'?'nevisigaming.com':'obtained.com';
+  const raw=await aiRoute('complianceReview',
+    'You are a senior compliance and factual-risk reviewer for regulated fintech, crypto, payments, investment, and iGaming content. Return ONLY valid JSON.',
+    `Review this draft before publication. Focus only on material factual, regulatory, legal, licensing, financial, or misleading-claim risk. Do not block for style.
+
+Site: ${site}
+Title: ${title}
+Category: ${qi.category||''}
+Angle: ${qi.angle||''}
+Named entity: ${qi.namedEntity||''}
+Keywords: ${(qi.keywords||[]).join(', ')}
+
+Article:
+${String(article||'').slice(0,7000)}
+
+Return JSON:
+{
+  "riskLevel":"low|medium|high",
+  "blockPublish":false,
+  "summary":"short review summary",
+  "flags":[
+    {"type":"factual|regulatory|licensing|financial|misleading","text":"exact sentence or short passage", "reason":"why this needs human review"}
+  ]
+}
+
+Set blockPublish=true ONLY when a claim appears materially unsupported, too absolute for a regulated matter, potentially misleading, or likely to require human/legal verification before publication.`,
+    1400,
+    {temperature:0.15,operation:'compliance_review'}
+  );
+  let data;
+  try{data=JSON.parse(raw);}catch(e){const m=String(raw||'').match(/\{[\s\S]*\}/);data=m?JSON.parse(m[0]):null;}
+  if(!data)throw new Error('Could not parse compliance review.');
+  data.flags=Array.isArray(data.flags)?data.flags.slice(0,12):[];
+  return data;
 }
 
 // ── Social channel fetch ──
@@ -3528,9 +3698,11 @@ async function fetchSocial(){
   if(!token){alert('Enter your HubSpot token first');return;}
   E('socmsg').textContent='Fetching...';
   try{
-    const res=await claude(
+    const res=await claudeRoute('fastFallback',
       'You are an API assistant. Make this exact HTTP request and return only the raw response body JSON.',
-      `Please make a GET request to https://api.hubapi.com/broadcast/v1/accounts with the header "Authorization: Bearer ${token}" and return the response body. If you cannot make external requests, return: {"error":"cannot_fetch"}`
+      `Please make a GET request to https://api.hubapi.com/broadcast/v1/accounts with the header "Authorization: Bearer ${token}" and return the response body. If you cannot make external requests, return: {"error":"cannot_fetch"}`,
+      700,
+      {temperature:0.2,operation:'utility_fallback'}
     );
     const raw=res.match(/\[[\s\S]*\]|\{[\s\S]*\}/)?.[0]||'{}';
     const d=JSON.parse(raw);
@@ -3830,11 +4002,13 @@ async function runTovScan(){
   btn.disabled=true;prog.style.display='block';
   prog.innerHTML='<span class="sp"></span> Analysing writing patterns with Claude...';
   try{
-    const raw=await claude('You are an expert writing style analyst. Return ONLY valid JSON, no markdown fences or explanation.',
+    const raw=await claudeRoute('topicAngle','You are an expert writing style analyst. Return ONLY valid JSON, no markdown fences or explanation.',
       `Analyse this article for tone of voice. Author: "${name||'Unknown'}", Role: "${v('sar')}".
 Article: ${text.substring(0,4500)}
 Return this exact JSON structure:
-{"summary":"1-2 sentence voice description","sliders":{"formal":1-10,"data":1-10,"concise":1-10,"bold":1-10,"tech":1-10},"rhythm":"one of: Mixed — short punchy + longer analytical|Consistently short and direct|Long-form, flowing paragraphs|Question-led, Socratic","struct":"one of: Prose-first, minimal bullets|Numbered frameworks|Header-led, scannable|Narrative / story arc","fp":"one of: Occasional — editorial 'I'|Frequent — personal perspective|Rarely — objective|We — company voice","cta":"one of: Soft — implied, not pushed|Direct — clear next step|Question-based|None — pure thought leadership","traits":["5 to 8 descriptors"],"avoid":["words not in this voice"],"phrases":"2-3 sentences on signature writing habits"}`);
+{"summary":"1-2 sentence voice description","sliders":{"formal":1-10,"data":1-10,"concise":1-10,"bold":1-10,"tech":1-10},"rhythm":"one of: Mixed — short punchy + longer analytical|Consistently short and direct|Long-form, flowing paragraphs|Question-led, Socratic","struct":"one of: Prose-first, minimal bullets|Numbered frameworks|Header-led, scannable|Narrative / story arc","fp":"one of: Occasional — editorial 'I'|Frequent — personal perspective|Rarely — objective|We — company voice","cta":"one of: Soft — implied, not pushed|Direct — clear next step|Question-based|None — pure thought leadership","traits":["5 to 8 descriptors"],"avoid":["words not in this voice"],"phrases":"2-3 sentences on signature writing habits"}`,
+      1800,
+      {temperature:0.25,operation:'tone_voice_analysis'});
     let p;try{p=JSON.parse(raw);}catch(e){const m=raw.match(/\{[\s\S]*\}/);p=m?JSON.parse(m[0]):null;}
     if(!p)throw new Error('Could not parse voice profile from response');
     const idx=S.tovs.length%AC.length;const[bg,tx]=AC[idx];
@@ -4137,9 +4311,9 @@ function mergeTopics(claudeTopics,openaiTopics,prefix){
     });
     if(duplicate)return;
     if(normEntity&&entities.has(normEntity))return;
-    // Add with a unique ID and GPT tag
+    // Add with a unique ID and model-route tag
     t.id=prefix+(merged.length+1);
-    t.aiSource='GPT-4o';
+    t.aiSource='Model route';
     merged.push(t);
     titles.add(normTitle);
     if(normEntity)entities.add(normEntity);
@@ -4196,8 +4370,8 @@ Return a JSON array of exactly 12 objects with these fields:
 }
 
 // ── SCAN ──
-const SMSGS=['Fetching live headlines from iGaming & fintech sources...','Scanning fintech M&A and banking infrastructure signals...','Checking FCA, BaFin, CSSF, MAS for new licences and fines...','Reading MiCA, CASP, and VASP regulatory updates...','Checking iGaming payment and licensing developments...','Monitoring investment fund and institutional capital flows...','Reviewing EBA / ESMA / ECB regulatory wires...','Filtering widely-covered mainstream stories...','Cross-referencing with IGB, Next.io, SBC News, CalvinAyre...','Generating parallel GPT-4o angles for broader coverage...','Merging & deduplicating best topics...'];
-const NMSGS=['Fetching live headlines from IGB, Next.io, SBC News...','Scanning iGaming operator licensing developments...','Checking Nevis gaming regulation updates...','Monitoring MGA, Gibraltar, Curaçao, Isle of Man frameworks...','Reviewing CalvinAyre & Yogonet for operator news...','Checking obtained.com blog for cross-reference angles...','Analysing jurisdiction comparison signals...','Generating parallel GPT-4o angles for broader coverage...','Merging & deduplicating best topics...','Sharpening entity-anchored iGaming topics...'];
+const SMSGS=['Fetching live headlines from iGaming & fintech sources...','Scanning fintech M&A and banking infrastructure signals...','Checking FCA, BaFin, CSSF, MAS for new licences and fines...','Reading MiCA, CASP, and VASP regulatory updates...','Checking iGaming payment and licensing developments...','Monitoring investment fund and institutional capital flows...','Reviewing EBA / ESMA / ECB regulatory wires...','Filtering widely-covered mainstream stories...','Cross-referencing with IGB, Next.io, SBC News, CalvinAyre...','Generating model-routed angles for broader coverage...','Merging & deduplicating best topics...'];
+const NMSGS=['Fetching live headlines from IGB, Next.io, SBC News...','Scanning iGaming operator licensing developments...','Checking Nevis gaming regulation updates...','Monitoring MGA, Gibraltar, Curaçao, Isle of Man frameworks...','Reviewing CalvinAyre & Yogonet for operator news...','Checking obtained.com blog for cross-reference angles...','Analysing jurisdiction comparison signals...','Generating model-routed angles for broader coverage...','Merging & deduplicating best topics...','Sharpening entity-anchored iGaming topics...'];
 
 async function runScan(){
   const btn=E('scbtn');btn.disabled=true;
@@ -4414,14 +4588,15 @@ async function dismissTopic(topicId){
   // Generate replacement
   try{
     const used=[...(sd.topics||[]).map(t=>t.title),...(sd.queue||[]).map(q=>q.title),...(sd.published||[]).map(p=>p.title)].join(' | ');
-    const raw=await claude(
+    const raw=await aiRoute('topicAngle',
       'You are a niche fintech content strategist. Return ONLY a valid JSON array with exactly 1 topic object.',
       `Generate ONE new unique article topic for the category "${oldTopic.category}" that is different from these existing topics: ${used}
 
 The topic MUST be anchored to a real named entity (company, regulator, or deal) from the last 48-72 hours.
 
 Return a JSON array with 1 object having these fields: title, category (must be "${oldTopic.category}"), trend ("hot"/"warm"/"cool"), angle (1-2 sentences), uniqueness (number 75-95), keywords (array of 3 strings), namedEntity (string), isNews (boolean), source (news source name or null), sourceHeadline (original headline or null)`,
-      800
+      800,
+      {temperature:0.7,operation:'topic_angle'}
     );
     const clean=raw.replace(/^```json?\n?/,'').replace(/\n?```$/,'').trim();
     const parsed=JSON.parse(clean);
@@ -4657,7 +4832,7 @@ async function generateSeoKeywords(title,category,keywords,angle,namedEntity,sit
     const competitiveInstruction=competitors.length
       ? `IMPORTANT — COMPETITIVE POSITIONING: The article must be written to outrank and out-answer these specific competitors in this vertical:\n${competitorBlock}\n\nYour keyword and AEO recommendations should: (a) target gaps these competitors miss, (b) use more precise, entity-anchored phrasing than they do, (c) surface angles they have NOT covered well, and (d) reflect how readers actually phrase their queries in AI assistants like ChatGPT, Perplexity and Google AI Overviews.`
       : 'No competitors are configured for this site+vertical — recommend keywords and AEO phrases based on search-intent best practices alone.';
-    const raw=await openai(
+    const raw=await aiRoute('seoAeo',
       'You are an SEO and AEO (Answer Engine Optimization) specialist. Return ONLY valid JSON, no markdown fences.',
       `Design SEO and AEO positioning for a blog article.
 
@@ -4679,8 +4854,9 @@ Return JSON with this exact shape:
   "aeoPhrases":["exact conversational query 1","exact conversational query 2","exact conversational query 3","exact conversational query 4"],
   "aeoBrief":"1-2 sentence guide on how the article should be structured to be cited by AI assistants (e.g. lead-with-answer paragraph, entity citations, comparison tables, schema)",
   "competitorGap":"1-3 sentences describing the specific angle this article should take to beat the listed competitors — cite competitors by name. If no competitors configured, output an empty string."
-}`,
-      800
+	}`,
+      1200,
+      {temperature:0.35,operation:'seo_aeo_metadata'}
     );
     const clean=raw.replace(/^```json?\n?/,'').replace(/\n?```$/,'').trim();
     return JSON.parse(clean);
@@ -5985,7 +6161,7 @@ async function runPipeline(qi){
       article=qi.humanEditedArticle;
       plog('Using human-edited draft from Needs human edit queue — generation skipped','lok');
     }else{
-    psd('gen','dr');pss('gen','Starting multi-model draft...');plog('Starting multi-model article generation (Draft: GPT-4.1 → Rewrite: Claude → Polish: GPT-4.1)','lin');
+	    psd('gen','dr');pss('gen','Starting multi-model draft...');plog('Starting model-routed article generation (Draft: GPT-5 route → Humanise: Claude Sonnet → Polish/SEO: GPT-5 mini route)','lin');
     const tovPrompt=tov?`WRITE IN THIS EXACT AUTHOR VOICE:
 Author: ${tov.name} — ${tov.role}
 Summary: ${tov.summary}
@@ -6149,26 +6325,59 @@ Output format:
 - Prose paragraphs; avoid bullet points unless comparing 3+ concrete items
 - Include the Standing CTA verbatim as the final line${regenBlock}`;
     // ════════════════════════════════════════════════════════════════
-    // MULTI-MODEL DRAFTING — three passes chained together to beat AI detectors:
-    //   A) Draft   (GPT-4.1)  : structured first draft with full system prompt
-    //   B) Rewrite (Claude)   : rewrite to destroy GPT stylometric signatures, preserve facts/SEO
-    //   C) Polish  (GPT-4.1)  : final pass for consistency, voice, banned-word check
+	    // MULTI-MODEL DRAFTING — routed by task:
+	    //   A) Draft   (GPT-5 route)      : structured first draft with source/SEO discipline
+	    //   B) Rewrite (Claude Sonnet 4)  : humanisation + editorial rewrite
+	    //   C) Polish  (GPT-5 mini route) : final consistency, SEO/AEO and banned-word check
     // Each model breaks the other's detectable patterns.
     // ════════════════════════════════════════════════════════════════
 
-    // Phase A — Draft (GPT-4.1)
-    pss('gen','Phase A: drafting (GPT-4.1)...');
-    plog('Phase A — drafting with GPT-4.1','lin');
-    const draft=await openai(sysPrompt,userPrompt,maxTok,{temperature:0.95,model:'gpt-4.1'});
+	    // Phase A — Draft (GPT-5 route, with compact emergency fallback if the hosted function times out)
+	    pss('gen','Phase A: drafting (GPT-5 route)...');
+	    plog('Phase A — drafting with GPT-5 route','lin');
+	    let draft;
+	    try{
+	      draft=await aiRoute('articleDraft',sysPrompt,userPrompt,maxTok,{temperature:0.82,operation:'article_generation'});
+	    }catch(aErr){
+	      const msg=String(aErr.message||aErr);
+	      if(!/hosted function|took longer|timed out|timeout/i.test(msg))throw aErr;
+	      plog('Phase A timed out — retrying with emergency compact fallback','ldm');
+	      pss('gen','Phase A retry: compact draft...');
+      const compactTarget=Math.min(targetWcNum,750);
+      const compactMin=Math.floor(compactTarget*0.85);
+      const compactSys=`You are a senior ${isNevis?'iGaming regulation':'fintech'} practitioner writing for ${siteName}. Write in a human, opinionated, practical voice. Use concrete entities, jurisdictions, regulators, dates, and commercial implications. Avoid generic AI phrasing and the banned words from the original brief. Return markdown only. First line must be TITLE: followed by the title.`;
+      const compactUser=`Write a complete blog article.
+
+Title: ${qi.title}
+Category: ${qi.category}
+Angle: ${qi.angle}
+Named entity: ${qi.namedEntity}
+Target length: ${compactTarget} words minimum ${compactMin}.
+Voice: ${tov?tov.name:'practitioner editorial'}
+SEO keywords: ${(qi.keywords||[]).join(', ')}
+Primary keyword: ${primaryKw||'none'}
+Secondary keywords: ${secondaryKws||'none'}
+Site context: ${siteContext}
+Brand POV: ${brandPov}
+
+Rules:
+- Open with a specific market signal, not a generic introduction.
+- Use ## H2 headings.
+- Include at least one comparison involving a named jurisdiction or regulator.
+- Include clear practical implications for the reader.
+- Use contractions and varied sentence length.
+- End with this CTA exactly: ${siteCta}`;
+	      draft=await aiRoute('fastFallback',compactSys,compactUser,Math.min(2200,compactTarget*2+500),{temperature:0.85,operation:'article_generation_fast'});
+	    }
     const draftWc=draft.split(/\s+/).length;
     plog('Phase A complete — draft: '+draftWc+' words','lok');
 
-    // Phase B — Rewrite with Claude (different model = different stylometric signature)
-    pss('gen','Phase B: rewriting (Claude)...');
-    plog('Phase B — rewriting with Claude to break GPT patterns','lin');
-    let rewritten=draft;
-    try{
-      const claudeRewrite=await claude(
+	    // Phase B — Rewrite with Claude Sonnet 4 (humanisation + editorial rewrite)
+	    pss('gen','Phase B: rewriting (Claude Sonnet)...');
+	    plog('Phase B — humanisation and editorial rewrite with Claude Sonnet 4','lin');
+	    let rewritten=draft;
+	    try{
+	      const claudeRewrite=await aiRoute('humanisation',
         `You are a senior human editor rewriting a blog article so it reads unmistakably like a human practitioner wrote it — NOT an AI. You will receive a draft and must produce a rewritten version that preserves every fact, every heading, every SEO keyword, and the full length, but destroys any detectable AI stylometric patterns.
 
 HARD RULES you must follow:
@@ -6190,25 +6399,26 @@ WHAT TO CHANGE to beat AI detectors:
 • Vary section lengths aggressively — some H2 sections 2-3 sentences, others 5-6. Never uniform.
 
 Return ONLY the rewritten article. First line must be the exact TITLE: line from the input.`,
-        `Draft to rewrite (${draftWc} words — keep within 95–105% of this count):\n\n${draft}`,
-        Math.min(8000, draftWc * 2 + 800)
-      );
+	        `Draft to rewrite (${draftWc} words — keep within 95–105% of this count):\n\n${draft}`,
+	        Math.min(8000, draftWc * 2 + 800),
+	        {temperature:0.82,operation:'humanisation'}
+	      );
       if(claudeRewrite && claudeRewrite.split(/\s+/).length >= draftWc*0.85){
         rewritten=claudeRewrite;
         plog('Phase B complete — Claude rewrite: '+claudeRewrite.split(/\s+/).length+' words','lok');
       }else{
-        plog('Phase B skipped — Claude rewrite was too short ('+((claudeRewrite||'').split(/\s+/).length)+' vs draft '+draftWc+'), keeping GPT-4.1 draft','ldm');
-      }
-    }catch(bErr){
-      plog('Phase B failed ('+((bErr.message||bErr)+'') .substring(0,160)+') — proceeding with GPT-4.1 draft','ldm');
-    }
+	        plog('Phase B skipped — Claude rewrite was too short ('+((claudeRewrite||'').split(/\s+/).length)+' vs draft '+draftWc+'), keeping draft output','ldm');
+	      }
+	    }catch(bErr){
+	      plog('Phase B failed ('+((bErr.message||bErr)+'') .substring(0,160)+') — proceeding with draft output','ldm');
+	    }
 
-    // Phase C — Polish with GPT-4.1 (catch remaining Claude-isms, reconfirm SEO + voice)
-    pss('gen','Phase C: polishing (GPT-4.1)...');
-    plog('Phase C — polishing with GPT-4.1 for final voice + SEO consistency','lin');
+	    // Phase C — Polish with GPT-5 mini route (catch remaining Claude-isms, reconfirm SEO + voice)
+	    pss('gen','Phase C: polishing (GPT-5 mini route)...');
+	    plog('Phase C — polishing with GPT-5 mini route for final voice + SEO consistency','lin');
     let art=rewritten;
     try{
-      const polished=await openai(
+	      const polished=await aiRoute('seoAeo',
         `You are a final-polish editor for a ${siteName} blog article. The article has already been drafted and rewritten by two different models. Your ONLY job is a light final pass. Return ONLY the polished article. Preserve the TITLE line, every H2, every named entity, the primary keyword and every secondary keyword in their current positions, and the full length (±3%).
 
 WHAT TO DO:
@@ -6220,10 +6430,10 @@ WHAT TO DO:
 6. Do NOT shorten the article.
 
 Return the full polished article. First line must be the TITLE: line.`,
-        `Article to polish:\n\n${rewritten}`,
-        Math.min(8000, rewritten.split(/\s+/).length * 2 + 500),
-        {temperature:0.8,model:'gpt-4.1'}
-      );
+	        `Article to polish:\n\n${rewritten}`,
+	        Math.min(8000, rewritten.split(/\s+/).length * 2 + 500),
+	        {temperature:0.65,operation:'article_polish'}
+	      );
       if(polished && polished.split(/\s+/).length >= rewritten.split(/\s+/).length*0.85){
         art=polished;
         plog('Phase C complete — polished: '+polished.split(/\s+/).length+' words','lok');
@@ -6242,7 +6452,7 @@ Return the full polished article. First line must be the TITLE: line.`,
     // SEO POST-VERIFICATION
     // Hard rules: primary kw in title, primary kw in first 100 words, primary kw in ≥2 H2s,
     // all secondary kws present at least once, at least 1 AEO phrase echoed as H2.
-    // If any fail, run one targeted repair pass with GPT-4.1.
+	    // If any fail, run one targeted repair pass with the SEO/AEO route.
     // ════════════════════════════════════════════════════════════════
     try{
       const seoIssues=_verifySeoRequirements(title, article, primaryKw, (qi.secondaryKeywords||[]), aeoPhrases);
@@ -6250,12 +6460,12 @@ Return the full polished article. First line must be the TITLE: line.`,
         plog('SEO verification: '+seoIssues.length+' issue'+(seoIssues.length>1?'s':'')+' detected → running targeted repair','ldm');
         for(const issue of seoIssues)plog('  • '+issue,'ldm');
         try{
-          const repair=await openai(
+	          const repair=await aiRoute('seoAeo',
             `You are an SEO repair editor. You will receive a blog article + a list of SPECIFIC SEO issues that must be fixed. Your job: make ONLY the targeted changes required to fix every listed issue. Do NOT rewrite untouched sections. Do NOT change facts. Do NOT change the word count (±3%).\n\nReturn the full article. First line must be the TITLE: line.`,
-            `Article:\n\nTITLE: ${title}\n\n${article}\n\n\nSEO issues to fix:\n${seoIssues.map((i,n)=>(n+1)+'. '+i).join('\n')}\n\nApply the minimum changes necessary to resolve each issue. Preserve everything else.`,
-            Math.min(8000, wc * 2 + 500),
-            {temperature:0.6,model:'gpt-4.1'}
-          );
+	            `Article:\n\nTITLE: ${title}\n\n${article}\n\n\nSEO issues to fix:\n${seoIssues.map((i,n)=>(n+1)+'. '+i).join('\n')}\n\nApply the minimum changes necessary to resolve each issue. Preserve everything else.`,
+	            Math.min(8000, wc * 2 + 500),
+	            {temperature:0.45,operation:'seo_aeo_metadata'}
+	          );
           if(repair){
             const tm2=repair.match(/^TITLE:\s*(.+)/m);
             if(tm2)title=tm2[1].trim();
@@ -6296,12 +6506,12 @@ Return the full polished article. First line must be the TITLE: line.`,
       plog(`Article is ${wc} words, ${shortfall} short of ${targetWc} target — requesting expansion (attempt ${expandAttempts}/2)`,'lin');
       pss('gen',`Expanding (${wc}/${targetWc})...`);
       try {
-        const expanded = await openai(
+	        const expanded = await aiRoute('articleDraft',
           `You are a senior editor expanding a blog article to meet a minimum word count WITHOUT compromising quality or voice.\n\nRULES:\n1. DO NOT add filler, padding, clichés, or repeat existing points.\n2. DO add: concrete examples with named companies/regulators/rails, specific data or statistics, richer explanations, additional nuance in existing arguments, 1-2 new H2 sections that naturally extend the existing topic.\n3. Maintain the exact same author voice, sentence-length variation, word-choice rules, personality, and editorial opinions as the original.\n4. The output MUST be at least ${minWordCount} words, target ${targetWc} words.\n5. Keep the original title and opening. Weave expansions throughout the article — don't just append at the end.\n6. Return the FULL expanded article (not a diff). First line must be TITLE: followed by the title.\n\nBanned words/phrases (a single use breaks voice): landscape, navigate, leverage, comprehensive, robust, streamline, cutting-edge, in today's, it's worth noting, dive into, delve into, game-changer, moreover, furthermore, consequently, revolutionize, harness, elevate, realm, tapestry, seamless, transformative, multifaceted, utilize, utilise, facilitate, paramount, crucial, essential, in conclusion, unprecedented, ever-evolving, at the forefront, cornerstone, bespoke, vibrant, dynamic.`,
-          `Current article (${wc} words — needs to be ${minWordCount}+ words):\n\nTITLE: ${title}\n\n${article}\n\nExpand this to at least ${minWordCount} words following the rules above.`,
-          Math.min(8000, targetWcNum * 2 + 800),
-          {temperature:0.9,model:'gpt-4.1'}
-        );
+	          `Current article (${wc} words — needs to be ${minWordCount}+ words):\n\nTITLE: ${title}\n\n${article}\n\nExpand this to at least ${minWordCount} words following the rules above.`,
+	          Math.min(8000, targetWcNum * 2 + 800),
+	          {temperature:0.78,operation:'article_expansion'}
+	        );
         const tm2 = expanded.match(/^TITLE:\s*(.+)/m);
         if (tm2) title = tm2[1].trim();
         const expandedArticle = expanded.replace(/^TITLE:.*$/m,'').trim();
@@ -6321,14 +6531,50 @@ Return the full polished article. First line must be the TITLE: line.`,
     }
     pss('gen', wc + ' words');
     }
-  }catch(e){
-    psd('gen','de');pss('gen','Failed');plog('Generation failed: '+e.message,'ler');
-    alog('pipeline','Pipeline failed','Title: '+qi.title+' | Error: '+e.message);
-    qi.status='error';qi.errorReason='Generation failed: '+e.message;persist();
-    _restoreInactivity();return;
-  }
+	  }catch(e){
+	    psd('gen','de');pss('gen','Failed');plog('Generation failed: '+e.message,'ler');
+	    alog('pipeline','Pipeline failed','Title: '+qi.title+' | Error: '+e.message);
+	    qi.status='error';qi.errorReason='Generation failed: '+e.message;persist();
+	    _restoreInactivity();return;
+	  }
 
-  // AI Detection loop — strict threshold enforcement
+	  // Regulated review gate — strict for fintech, crypto, payments, licensing, investment and iGaming content.
+	  if(isRegulatedContent(qi)){
+	    try{
+	      plog('Regulated review gate — checking factual and compliance-sensitive claims','lin');
+	      const review=await complianceReviewArticle(qi,title,article);
+	      qi.complianceReview=review;
+	      const risk=String(review.riskLevel||'low').toLowerCase();
+	      plog('Regulated review gate: '+risk+' risk — '+(review.summary||'review completed'),review.blockPublish?'ler':(risk==='low'?'lok':'ldm'));
+	      if(review.flags&&review.flags.length){
+	        plog('Compliance flags: '+review.flags.slice(0,3).map(f=>(f.type||'claim')+': '+String(f.reason||'review').slice(0,80)).join(' | '),'ldm');
+	      }
+	      if(review.blockPublish){
+	        E('plstat').textContent='Draft needs review';E('plstat').className='badge ber';
+	        psd('det','de');pss('det','Compliance review');
+	        psd('hum','de');pss('hum','Needs human edit');
+	        psd('link','dk');pss('link','After edit');
+	        psd('seo','dk');pss('seo','After edit');
+	        psd('img','dk');pss('img','After edit');
+	        psd('appr','dk');pss('appr','After edit');
+	        psd('hs','dk');pss('hs','Blocked');
+	        psd('soc','dk');pss('soc','Blocked');
+	        qi.status='human_edit';qi.aiScore=100;qi.generatedAiScore=100;qi.aiThreshold=parseInt(cfg.th)||15;
+	        qi.errorReason='Needs human edit: regulated review found claims requiring human verification';
+	        qi.generatedTitle=title;qi.generatedArticle=article;qi.generatedHtml='<div>'+markdownToHtml(article)+'</div>';
+	        qi.aiFlags=(review.flags||[]).map(f=>({type:f.type||'compliance',text:f.text||f.reason||'Compliance-sensitive claim requires review',probability:100,reason:f.reason||review.summary||'Regulated review gate'}));
+	        alog('pipeline','Article blocked by regulated review','Title: '+qi.title+' | '+(review.summary||'Compliance-sensitive claims require human review'));
+	        plog('Draft saved — moved to Needs human edit for regulated review. It will stay inside the app until checked.','ler');
+	        persist();renderQueue();renderBadges();
+	        setTimeout(()=>openHumanEdit(qi.id),250);
+	        _restoreInactivity();return;
+	      }
+	    }catch(reviewErr){
+	      plog('Regulated review gate skipped: '+String(reviewErr.message||reviewErr).slice(0,160),'ldm');
+	    }
+	  }
+
+	  // AI Detection loop — strict threshold enforcement
   const thresh=parseInt(cfg.th)||15;
   const maxRounds=5;
   let aiBlocked=false;
@@ -6396,7 +6642,7 @@ Return the full polished article. First line must be the TITLE: line.`,
         plog('Falling back to full-article rewrite','lin');
         // Use generous token budget so the rewrite is NOT truncated (was defaulting to 1000 tokens — caused short articles)
         const humanMaxTok = Math.min(8000, Math.max(currentWc * 2 + 500, 2500));
-        const humanised = await openai(
+        const humanised = await aiRoute('humanisation',
           `You are a veteran human editor. Your job: make this article undetectable by AI detectors (Originality.ai, GPTZero). Current score: ${aiScore}%. Must get under ${thresh}%.
 
 LENGTH REQUIREMENT (NON-NEGOTIABLE):
@@ -6416,7 +6662,7 @@ KEY CHANGES TO MAKE:
 Preserve ALL facts, structure, headings, SEO keywords, and full length. Return ONLY the rewritten article body (no TITLE: prefix, no preamble).`,
           `Rewrite this ${currentWc}-word article to pass AI detection (must stay at least ${Math.floor(currentWc * 0.95)} words):\n\n${article}`,
           humanMaxTok,
-          {temperature:0.95,model:'gpt-4.1'}
+          {temperature:0.86,operation:'humanisation'}
         );
         // Guard: if rewrite is much shorter than original, keep the original and log a warning
         const newWc = humanised.split(/\s+/).length;
@@ -6475,7 +6721,7 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
     const existingPosts=(blRes.ok&&blData.results)?blData.results:[];
     if(existingPosts.length){
       const postList=existingPosts.map(p=>({title:p.name,url:p.url||('https://www.obtained.com/blog/'+p.slug),slug:p.slug}));
-      const linkResult=await openai(
+	      const linkResult=await aiRoute('seoAeo',
         `You are an SEO internal linking specialist. You will be given an HTML article and a list of existing blog posts. Your job is to find 2-4 natural places in the article where you can link to related existing posts. Follow SEO best practices:
 - Use descriptive anchor text (not "click here")
 - Link to genuinely related content
@@ -6483,8 +6729,10 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
 - Don't force links where they don't fit naturally
 - Use <a href="URL" target="_blank"> tags
 - Return ONLY the modified HTML with links injected, nothing else.`,
-        `ARTICLE HTML:\n${linkedHtml}\n\nEXISTING BLOG POSTS TO LINK TO:\n${JSON.stringify(postList)}\n\nReturn the modified HTML with 2-4 internal links injected naturally.`
-      );
+	        `ARTICLE HTML:\n${linkedHtml}\n\nEXISTING BLOG POSTS TO LINK TO:\n${JSON.stringify(postList)}\n\nReturn the modified HTML with 2-4 internal links injected naturally.`,
+	        2200,
+	        {temperature:0.35,operation:'seo_aeo_metadata'}
+	      );
       if(linkResult&&linkResult.includes('<')){
         linkedHtml=linkResult.trim();
         // Clean any markdown fences
@@ -6494,7 +6742,7 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
         plog('Internal linking: '+linkCount+' links to existing articles ✓','lok');
       }else{
         psd('link','do');pss('link','No links added');
-        plog('Internal linking: GPT-4o response did not contain valid HTML, skipping','ldm');
+	        plog('Internal linking: model response did not contain valid HTML, skipping','ldm');
       }
     }else{
       psd('link','dk');pss('link','No existing posts found');
@@ -6512,7 +6760,7 @@ Preserve ALL facts, structure, headings, SEO keywords, and full length. Return O
     const isNevisSeo=qi.targetSite==='nevis';
     const siteDomain=isNevisSeo?'nevisigaming.com':'obtained.com';
     const tagMax=parseInt(cfg.tagMax)||5;
-    const seoRaw=await openai(
+	    const seoRaw=await aiRoute('seoAeo',
       'You are a senior SEO specialist who audits content for on-page optimisation. Return ONLY valid JSON, no markdown fences.',
       `Generate a comprehensive SEO package for this blog article.
 
@@ -6553,8 +6801,10 @@ Return this exact JSON structure:
     "passiveVoicePercent": 0,
     "transitionWordPercent": 0
   }
-}`
-    );
+	}`,
+	      1800,
+	      {temperature:0.25,operation:'seo_aeo_metadata'}
+	    );
     let seoData;
     try{seoData=JSON.parse(seoRaw);}catch(e){const m=seoRaw.match(/\{[\s\S]*\}/);seoData=m?JSON.parse(m[0]):null;}
     if(seoData){
@@ -6596,12 +6846,14 @@ Return this exact JSON structure:
   plog('Generating social captions...','lin');
   let socialCap='';
   try{
-    socialCap=await openai(
-      qi.targetSite==='nevis'
-        ?'You write punchy social media captions for NEVISiGaming — the Nevis Gaming Regulation Agency, focused on iGaming licensing and regulation.'
-        :'You write punchy social media captions for obtained.com — a fintech company specialising in payment solutions, CASP/VASP licensing, iGaming payments, and investment fund services.',
-      'Write a LinkedIn/Facebook caption (max 220 characters) with 3 relevant hashtags for this article: "'+title+'". Return only the caption text, nothing else.'
-    );
+	    socialCap=await aiRoute('seoAeo',
+	      qi.targetSite==='nevis'
+	        ?'You write punchy social media captions for NEVISiGaming — the Nevis Gaming Regulation Agency, focused on iGaming licensing and regulation.'
+	        :'You write punchy social media captions for obtained.com — a fintech company specialising in payment solutions, CASP/VASP licensing, iGaming payments, and investment fund services.',
+	      'Write a LinkedIn/Facebook caption (max 220 characters) with 3 relevant hashtags for this article: "'+title+'". Return only the caption text, nothing else.',
+	      320,
+	      {temperature:0.55,operation:'seo_aeo_metadata'}
+	    );
   }catch(e){socialCap='New article from obtained.com: '+title;}
 
   // Generate 1 featured image with DALL-E + SEO alt text (enhanced context)
@@ -6623,7 +6875,7 @@ Return this exact JSON structure:
       const siteContext=activeSite==='nevis'
         ?'Nevis Gaming Regulation Agency blog — iGaming licensing, Caribbean gaming jurisdiction, regulatory compliance'
         :'Obtained.com blog — fintech, CASP/VASP licensing, iGaming payments, investment fund services';
-      const imgPromptRaw=await openai(
+	      const imgPromptRaw=await aiRoute('seoAeo',
         `You are an expert editorial photo director for a premium business publication. Your job is to create highly specific DALL-E image prompts that PRECISELY match the article content — never generic stock-photo-style imagery.
 
 Return ONLY valid JSON, no markdown fences.
@@ -6638,7 +6890,7 @@ CRITICAL RULES:
 - NO text, words, letters, numbers, watermarks, or logos in the image
 - Style: cinematic photorealistic editorial photography, like Bloomberg Businessweek or Financial Times feature headers
 - Composition: wide landscape (16:9), dramatic lighting, shallow depth of field where appropriate
-- The prompt should be 150-300 characters and paint a SPECIFIC visual scene`,
+	- The prompt should be 150-300 characters and paint a SPECIFIC visual scene`,
         `SITE CONTEXT: ${siteContext}
 
 ARTICLE TITLE: "${title}"
@@ -6656,8 +6908,9 @@ Also generate SEO-optimised alt text that includes the primary keyword naturally
 
 Return JSON:
 {"prompt":"vivid, specific scene description with composition, lighting, subject — MUST relate directly to the article content (150-300 chars)","altText":"SEO alt text incorporating primary keyword naturally (max 125 chars)"}`,
-        800
-      );
+	        800,
+	        {temperature:0.45,operation:'seo_aeo_metadata'}
+	      );
       let imgData;
       try{imgData=JSON.parse(imgPromptRaw);}catch(e){const m=imgPromptRaw.match(/\{[\s\S]*\}/);imgData=m?JSON.parse(m[0]):null;}
       if(!imgData||!imgData.prompt)throw new Error('Could not parse image prompt');
@@ -7631,7 +7884,7 @@ function renderSettingsSyncStatus(){
 function applySettingsAdminGate() {
   const admin = isCurrentUserAdmin();
   // Lock all sensitive input fields for non-admins
-  const lockedIds = ['sak','soai','ss','sahrefs','sgptz','sht','shb','sli','sfb','swpurl','swpuser','swppass','spt','spo','swc','sth','stagmax','scta'];
+  const lockedIds = ['sak','soai','ss','sahrefs','sgptz','sht','shb','sli','sfb','swpurl','swpuser','swppass','saimode','spt','spo','swc','sth','stagmax','scta'];
   lockedIds.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -7669,6 +7922,7 @@ function loadSettingsUI(){
   if(E('spo'))E('spo').value=s.po||1;
   if(E('swc'))E('swc').value=s.wc||'900';
   if(E('sth'))E('sth').value=s.th||15;
+  if(E('saimode'))E('saimode').value=s.aiMode||'regulated';
   if(E('stagmax'))E('stagmax').value=s.tagMax||5;
   if(E('scta'))E('scta').value=s.cta||'Ready to simplify your payments or navigate licensing? Visit obtained.com to explore our solutions.';
   // Credential status indicators
@@ -7718,7 +7972,7 @@ async function saveSettings(){
     anthropicKey:v('sak'),openaiKey:v('soai'),sapling:v('ss'),ahrefsKey:v('sahrefs'),gptzeroKey:v('sgptz'),
     hsToken:v('sht')||HS_TOKEN,hsBlog:v('shb')||HS_BLOG,
     li:v('sli'),fb:v('sfb'),pt:v('spt'),po:parseInt(v('spo'))||1,
-    wc:v('swc'),th:parseInt(v('sth'))||15,cta:v('scta'),tagMax:parseInt(v('stagmax'))||5,
+    wc:v('swc'),th:parseInt(v('sth'))||15,aiMode:v('saimode')||'regulated',cta:v('scta'),tagMax:parseInt(v('stagmax'))||5,
     wpUrl:v('swpurl'),wpUser:v('swpuser'),wpPass:v('swppass')
   };
   // Push to server (shared org settings) — admin only
@@ -7806,7 +8060,7 @@ async function runNevisScan(liveHeadlines){
   const sd=siteData();
   const used=[...(sd.topics||[]).map(t=>t.title),...(sd.queue||[]).map(q=>q.title),...(sd.published||[]).map(p=>p.title)].join(' | ');
   const today=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const raw=await claude(
+  const raw=await aiRoute('topicAngle',
     'You are a content strategist for NEVISiGaming (nevisigaming.com), the Nevis Gaming Regulation Agency. You create blog content about iGaming regulation, specifically around the Nevis jurisdiction and the broader online gaming industry. Every topic must be anchored to a real entity, regulation, or event. Return ONLY a valid JSON array, no markdown.',
     `Generate 12 unique article ideas for the NEVISiGaming blog dated ${today}.
 
@@ -7844,7 +8098,7 @@ Return JSON array of 12 objects:
   "keywords": ["kw1","kw2","kw3"],
   "namedEntity": "specific entity",
   "isNews": true or false
-}`,4096);
+	}`,4096,{temperature:0.7,operation:'topic_angle'});
   return raw;
 }
 
