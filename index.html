@@ -2045,6 +2045,7 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
         <div id="integrationStatusCards"></div>
 	        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 	          <button class="btn bs" onclick="loadIntegrationStatus()">Refresh status</button>
+	          <button class="btn bs" onclick="testCopyleaksConnection()">Test Copyleaks</button>
 	          <button class="btn bs" onclick="testGptzeroConnection()">Test GPTZero</button>
 	          <button class="btn bs" onclick="calibrateGptzero()">Calibrate GPTZero</button>
 	          <span id="gzTestMsg" style="font-size:11px"></span>
@@ -3430,6 +3431,54 @@ async function gptzeroPredict(documentText){
   return d.data;
 }
 
+async function copyleaksPredict(documentText,opts={}){
+  const {r,d}=await postSaasApi('copyleaks',{
+    action:'predict',
+    clientId:activeClientId,
+    document:documentText,
+    sandbox:!!opts.sandbox,
+    explain:!!opts.explain,
+    sensitivity:opts.sensitivity||2,
+    language:opts.language||'en'
+  });
+  if(!r.ok)throw new Error(d.error||('Copyleaks error HTTP '+r.status));
+  return d.data;
+}
+
+function _copyleaksScoreInfo(data){
+  try{
+    const ai=data&&data.summary&&typeof data.summary.ai==='number'?_probToPct(data.summary.ai):null;
+    const human=data&&data.summary&&typeof data.summary.human==='number'?_probToPct(data.summary.human):null;
+    const results=Array.isArray(data&&data.results)?data.results:[];
+    const aiSections=results.filter(r=>Number(r.classification)===2).length;
+    const humanSections=results.filter(r=>Number(r.classification)===1).length;
+    return {pct:ai,source:'summary.ai',human,modelVersion:data&&data.modelVersion,aiSections,humanSections};
+  }catch(e){return {pct:null,source:'error',human:null,modelVersion:null,aiSections:0,humanSections:0};}
+}
+
+function _copyleaksFlaggedSegments(data,article,limit=20){
+  try{
+    const results=Array.isArray(data&&data.results)?data.results:[];
+    const flagged=[];
+    for(const r of results){
+      if(Number(r.classification)!==2)continue;
+      const prob=Math.round(((typeof r.probability==='number'?r.probability:0.85)>1?r.probability/100:r.probability||0.85)*100);
+      const matches=Array.isArray(r.matches)?r.matches:[];
+      for(const m of matches){
+        const starts=m&&m.text&&m.text.chars&&Array.isArray(m.text.chars.starts)?m.text.chars.starts:[];
+        const lengths=m&&m.text&&m.text.chars&&Array.isArray(m.text.chars.lengths)?m.text.chars.lengths:[];
+        for(let i=0;i<starts.length;i++){
+          const start=Number(starts[i])||0;
+          const len=Number(lengths[i])||0;
+          const text=String(article||'').slice(start,start+len).trim();
+          if(text.length>=20)flagged.push({type:'copyleaks',text,probability:prob});
+        }
+      }
+    }
+    return flagged.slice(0,limit);
+  }catch(e){return [];}
+}
+
 // Normalize GPTZero response to a single AI-probability percentage (0-100).
 // GPTZero response shape: { documents: [{ class_probabilities: { ai, human, mixed }, ... }] }
 // We use document-level ai probability. Higher = more AI. Returns number or null.
@@ -3550,6 +3599,10 @@ function _replaceApproxSentence(source,target,replacement){
 }
 
 function getAiFlagsFromLastScan(article){
+  if(_lastCopyleaksData){
+    const clFlags=_copyleaksFlaggedSegments(_lastCopyleaksData,article,20);
+    if(clFlags.length)return clFlags;
+  }
   const sentenceFlags=_gptzeroFlaggedSentences(_lastGptzeroData,0.5).slice(0,20).map(x=>({
     type:'sentence',
     text:x.text,
@@ -3662,6 +3715,24 @@ async function humaniseLikelyAiParagraphs(article, {tov, brandPov, bannedWords, 
 }
 
 function isGptzeroConfigured(){ return !!(_integrationStatus&&_integrationStatus.gptzero); }
+function isCopyleaksConfigured(){ return !!(_integrationStatus&&_integrationStatus.copyleaks); }
+
+function gptzeroCalibrationState(){
+  try{return JSON.parse(localStorage.getItem('contentStudio.gptzeroCalibration')||'null');}
+  catch(e){return null;}
+}
+
+function isGptzeroReliable(){
+  const state=gptzeroCalibrationState();
+  // If no calibration has been run in this browser, allow GPTZero. Once calibration
+  // fails, do not let GPTZero operate as a hard gate until it passes again.
+  return !state || state.reliable !== false;
+}
+
+function saveGptzeroCalibrationState(state){
+  try{localStorage.setItem('contentStudio.gptzeroCalibration',JSON.stringify({...state,at:new Date().toISOString()}));}
+  catch(e){/* ignore */}
+}
 
 async function testGptzeroConnection(){
   if(!isCurrentUserAdmin()){alert('Only admins can test the GPTZero connection.');return;}
@@ -3680,6 +3751,26 @@ async function testGptzeroConnection(){
     }
   }catch(e){
     if(msg){msg.textContent='✗ Network error: '+(e.message||e).substring(0,200);msg.style.color='#c0392b';}
+  }
+}
+
+async function testCopyleaksConnection(){
+  if(!isCurrentUserAdmin()){alert('Only admins can test the Copyleaks connection.');return;}
+  const msg=E('gzTestMsg');
+  if(msg){msg.innerHTML='<span class="sp"></span> Testing Copyleaks…';msg.style.color='var(--text2)';}
+  try{
+    const {r,d}=await postSaasApi('copyleaks',{action:'testConnection',clientId:activeClientId});
+    if(r.ok){
+      if(msg){msg.textContent='✓ Connection OK — Copyleaks accepted the credentials';msg.style.color='var(--green)';}
+      alog('settings','Copyleaks connection test','OK');
+      await loadIntegrationStatus();
+    }else{
+      const rawMsg=(d&&(d.error||d.message))||('HTTP '+r.status);
+      if(msg){msg.textContent='✗ Copyleaks failed: '+rawMsg.substring(0,200);msg.style.color='#c0392b';}
+      alog('settings','Copyleaks connection test','Failed — '+rawMsg.substring(0,120));
+    }
+  }catch(e){
+    if(msg){msg.textContent='✗ Copyleaks network error: '+(e.message||e).substring(0,200);msg.style.color='#c0392b';}
   }
 }
 
@@ -3708,9 +3799,10 @@ In conclusion, companies that embrace comprehensive compliance transformation wi
     const ad=_gptzeroDiagnostics(ai);
     const hp=hd.score;
     const ap=ad.score;
-    const ok=(hp!==null&&ap!==null&&hp<ap);
+    const ok=(hp!==null&&ap!==null&&hp<70&&ap>=70&&(ap-hp)>=20);
+    saveGptzeroCalibrationState({reliable:ok,humanScore:hp,aiScore:ap,humanClass:hd.predictedClass,aiClass:ad.predictedClass});
     if(msg){
-      msg.textContent='Calibration: human sample '+(hp??'—')+'% AI ('+hd.predictedClass+', '+hd.confidence+'), AI-like sample '+(ap??'—')+'% AI ('+ad.predictedClass+', '+ad.confidence+')'+(ok?'':' — review before trusting as hard gate');
+      msg.textContent='Calibration: human sample '+(hp??'—')+'% AI ('+hd.predictedClass+', '+hd.confidence+'), AI-like sample '+(ap??'—')+'% AI ('+ad.predictedClass+', '+ad.confidence+')'+(ok?'':' — GPTZero will be treated as advisory only until calibration passes');
       msg.style.color=ok?'var(--green)':'var(--red)';
     }
     alog('settings','GPTZero calibration','Human sample '+(hp??'—')+'% '+hd.predictedClass+' | AI-like sample '+(ap??'—')+'% '+ad.predictedClass);
@@ -3735,11 +3827,31 @@ async function generateImages(prompt){
 // ── AI detection — GPTZero primary, Sapling fallback, Claude estimate as last resort ──
 // The most recent GPTZero response is stashed here so the humanisation loop can target flagged sentences.
 let _lastGptzeroData=null;
+let _lastCopyleaksData=null;
 async function detectAI(text){
   const snippet=(text||'').substring(0,7500); // GPTZero accepts long docs; cap for token economy
   _lastGptzeroData=null;
-  // 1. GPTZero (primary) — only if admin configured the key
-  if(isGptzeroConfigured()){
+  _lastCopyleaksData=null;
+  // 1. Copyleaks (primary when configured) — server-side credentials only.
+  if(_integrationStatus&&_integrationStatus.copyleaks){
+    try{
+      const data=await copyleaksPredict(snippet,{sensitivity:2,explain:false});
+      _lastCopyleaksData=data;
+      const info=_copyleaksScoreInfo(data);
+      if(info.pct!==null){
+        console.log('[detectAI] Copyleaks:',info);
+        if(typeof plog==='function'){
+          plog('Copyleaks diagnostic: score '+info.pct+'% via '+info.source+' | model '+(info.modelVersion||'unknown')+' | AI sections '+info.aiSections,'ldm');
+        }
+        return info.pct;
+      }
+    }catch(e){
+      console.warn('[detectAI] Copyleaks failed, falling back:',e.message||e);
+      if(typeof plog==='function')plog('Copyleaks unavailable: '+String(e.message||e).slice(0,120)+' — falling back to GPTZero/internal estimate','ldm');
+    }
+  }
+  // 2. GPTZero — only if admin configured the key and calibration did not fail
+  if(isGptzeroConfigured()&&isGptzeroReliable()){
     try{
       const data=await gptzeroPredict(snippet);
       _lastGptzeroData=data;
@@ -3753,8 +3865,12 @@ async function detectAI(text){
         return pct;
       }
     }catch(e){console.warn('[detectAI] GPTZero failed, falling back:',e.message||e);}
+  }else if(isGptzeroConfigured()&&!isGptzeroReliable()){
+    if(typeof plog==='function'){
+      plog('GPTZero skipped as hard gate because calibration failed. Using internal detector estimate until calibration passes or a second detector is added.','ldm');
+    }
   }
-  // 2. Sapling (legacy fallback) — only if key present
+  // 3. Sapling (legacy fallback) — only if key present
   const sapKey=S.settings&&S.settings.sapling;
   if(sapKey){
     try{
@@ -3762,7 +3878,7 @@ async function detectAI(text){
       // (Leaving this branch as-is; future versions can proxy Sapling if needed)
     }catch(e){/* ignore */}
   }
-  // 3. Claude estimate (always-available fallback — doesn't cost an external detector call)
+  // 4. Claude estimate (always-available fallback — doesn't cost an external detector call)
   try{
     const res=await claudeRoute('fastFallback',
       'You are an AI-content detector. Analyse text and return ONLY valid JSON: {"score":0-100,"reasons":["..."]}. score 0=fully human, 100=clearly AI-generated.',
@@ -7869,7 +7985,8 @@ function renderIntegrationStatus(){
   el.innerHTML=[
     item('OpenAI',st.openai?'connected':'missing','Article drafting, topic scans, SEO helpers, and image generation use the platform OpenAI key.'),
     item('Anthropic Claude',st.anthropic?'connected':'missing','Used for rewrite, review, and editorial stages in the multi-model workflow.'),
-    item('GPTZero',st.gptzero?'connected':'missing','Primary AI-detection check. If missing, the app falls back to the internal estimate.'),
+    item('Copyleaks',st.copyleaks?'connected':'missing','Primary AI-detection check when configured. Credentials stay server-side in Netlify.'),
+    item('GPTZero',st.gptzero?'connected':'missing','Secondary/advisory AI-detection check. If calibration fails, it is not used as a hard gate.'),
     item('HubSpot',s.hsBlog?'connected':'missing',s.hsBlog?'Blog ID '+escapeHtml(String(s.hsBlog))+' is saved. Token migration to asset credentials is next.':'Connect a HubSpot asset during client setup.','asset'),
     item('WordPress',st.wordpress?'connected':'missing',st.wordpress?'nevisigaming.com publishing is configured server-side.':'Add WP_URL, WP_USER, and WP_PASS in Netlify environment variables.','asset'),
     item('LinkedIn / Instagram','planned','Supported integration slots for the SaaS roadmap after website publishing is stable.','asset')
