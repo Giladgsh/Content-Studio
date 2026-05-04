@@ -2047,6 +2047,7 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
 	          <button class="btn bs" onclick="loadIntegrationStatus()">Refresh status</button>
 	          <button class="btn bs" onclick="testCopyleaksConnection()">Test Copyleaks</button>
 	          <button class="btn bs" onclick="calibrateCopyleaks()">Calibrate Copyleaks</button>
+	          <button class="btn bs" onclick="checkCopyleaksUrl()">Check article URL</button>
 	          <button class="btn bs" onclick="testGptzeroConnection()">Test GPTZero</button>
 	          <button class="btn bs" onclick="calibrateGptzero()">Calibrate GPTZero</button>
 	          <span id="gzTestMsg" style="font-size:11px"></span>
@@ -3446,6 +3447,20 @@ async function copyleaksPredict(documentText,opts={}){
   return d.data;
 }
 
+async function copyleaksPredictUrl(url,opts={}){
+  const {r,d}=await postSaasApi('copyleaks',{
+    action:'predictUrl',
+    clientId:activeClientId,
+    url,
+    sandbox:!!opts.sandbox,
+    explain:!!opts.explain,
+    sensitivity:opts.sensitivity||1,
+    language:opts.language||'en'
+  });
+  if(!r.ok)throw new Error(d.error||('Copyleaks URL check error HTTP '+r.status));
+  return d;
+}
+
 function _copyleaksScoreInfo(data){
   try{
     const ai=data&&data.summary&&typeof data.summary.ai==='number'?_probToPct(data.summary.ai):null;
@@ -3858,6 +3873,25 @@ Furthermore, organizations that implement scalable governance models can facilit
     alog('settings','Copyleaks calibration','Human sample '+(hp??'—')+'% | AI-like sample '+(ap??'—')+'%');
   }catch(e){
     if(msg){msg.textContent='Copyleaks calibration failed: '+(e.message||e).substring(0,180);msg.style.color='var(--red)';}
+  }
+}
+
+async function checkCopyleaksUrl(){
+  if(!isCurrentUserAdmin()){alert('Only admins can run Copyleaks URL checks.');return;}
+  const msg=E('gzTestMsg');
+  const url=prompt('Article URL to check with Copyleaks:', 'https://obtained.com/blog/rapyd-payu-acquisition');
+  if(!url)return;
+  if(msg){msg.innerHTML='<span class="sp"></span> Checking article URL with Copyleaks…';msg.style.color='var(--text2)';}
+  try{
+    const res=await copyleaksPredictUrl(url,{sensitivity:1,explain:true});
+    const diag=_copyleaksDiagnostics(res.data);
+    if(msg){
+      msg.textContent='Copyleaks URL check: '+(diag.score??'—')+'% AI · extracted '+(res.extractedChars||0)+' chars'+(diag.explain&&diag.explain.length?' · '+diag.explain.join(' | ').slice(0,140):'');
+      msg.style.color=(diag.score!=null&&diag.score<70)?'var(--green)':'var(--red)';
+    }
+    alog('settings','Copyleaks URL check','Score '+(diag.score??'—')+'% | '+url+' | extracted '+(res.extractedChars||0)+' chars');
+  }catch(e){
+    if(msg){msg.textContent='Copyleaks URL check failed: '+(e.message||e).substring(0,180);msg.style.color='var(--red)';}
   }
 }
 
