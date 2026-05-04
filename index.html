@@ -2046,6 +2046,7 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
 	        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 	          <button class="btn bs" onclick="loadIntegrationStatus()">Refresh status</button>
 	          <button class="btn bs" onclick="testCopyleaksConnection()">Test Copyleaks</button>
+	          <button class="btn bs" onclick="calibrateCopyleaks()">Calibrate Copyleaks</button>
 	          <button class="btn bs" onclick="testGptzeroConnection()">Test GPTZero</button>
 	          <button class="btn bs" onclick="calibrateGptzero()">Calibrate GPTZero</button>
 	          <span id="gzTestMsg" style="font-size:11px"></span>
@@ -2110,8 +2111,8 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
         <div class="fi"><label>Publish offset (days ahead)</label><input type="number" id="spo" min="0" max="30" value="1"/></div>
         <div class="fi"><label>Default word count</label>
           <select id="swc"><option value="600">600 words</option><option value="900" selected>900 words</option><option value="1200">1,200 words</option><option value="1500">1,500 words</option><option value="2000">2,000 words</option></select></div>
-        <div class="fi"><label>AI detection threshold (%)</label><input type="number" id="sth" min="5" max="40" value="15"/>
-          <div class="hint">Articles scoring above this are rewritten until compliant (up to 5 rounds). Articles that still exceed the threshold are blocked from approval.</div>
+        <div class="fi"><label>AI detection threshold (%)</label><input type="number" id="sth" min="5" max="60" value="30"/>
+          <div class="hint">Current default is 30%. Detector scores are risk signals; Copyleaks runs first, GPTZero is secondary when calibrated.</div>
         </div>
         <div class="fi"><label>Max SEO tags per article</label>
           <select id="stagmax"><option value="3">3 tags</option><option value="5" selected>5 tags</option><option value="8">8 tags</option><option value="10">10 tags</option><option value="12">12 tags</option></select>
@@ -3076,7 +3077,7 @@ let S=def();
 let selIds=new Set();
 let running=false;
 
-function def(){return{sites:{obtained:{topics:[],queue:[],published:[],lastScan:null},nevis:{topics:[],queue:[],published:[],lastScan:null}},tovs:[],activeTovId:null,settings:{anthropicKey:'',openaiKey:'',sapling:'',hsToken:HS_TOKEN,hsBlog:HS_BLOG,li:'',fb:'',pt:'09:00',po:1,wc:'900',th:20,aiMode:'regulated',cta:'Ready to simplify your payments or navigate licensing? Visit obtained.com to explore our solutions.'}};}
+function def(){return{sites:{obtained:{topics:[],queue:[],published:[],lastScan:null},nevis:{topics:[],queue:[],published:[],lastScan:null}},tovs:[],activeTovId:null,settings:{anthropicKey:'',openaiKey:'',sapling:'',hsToken:HS_TOKEN,hsBlog:HS_BLOG,li:'',fb:'',pt:'09:00',po:1,wc:'900',th:30,aiMode:'regulated',cta:'Ready to simplify your payments or navigate licensing? Visit obtained.com to explore our solutions.'}};}
 
 // ── Per-site data helpers ──
 function siteData(){if(!S.sites)S.sites={obtained:{topics:[],queue:[],published:[],lastScan:null},nevis:{topics:[],queue:[],published:[],lastScan:null}};if(!S.sites[activeSite])S.sites[activeSite]={topics:[],queue:[],published:[],lastScan:null};return S.sites[activeSite];}
@@ -3456,6 +3457,21 @@ function _copyleaksScoreInfo(data){
   }catch(e){return {pct:null,source:'error',human:null,modelVersion:null,aiSections:0,humanSections:0};}
 }
 
+function _copyleaksDiagnostics(data){
+  const info=_copyleaksScoreInfo(data);
+  const results=Array.isArray(data&&data.results)?data.results:[];
+  const aiResults=results.filter(r=>Number(r.classification)===2);
+  return {
+    score:info.pct,
+    source:info.source,
+    human:info.human,
+    modelVersion:info.modelVersion||'unknown',
+    aiSections:info.aiSections,
+    humanSections:info.humanSections,
+    explain:aiResults.slice(0,3).map(r=>String(r.reason||r.explanation||r.label||'AI-like segment')).filter(Boolean)
+  };
+}
+
 function _copyleaksFlaggedSegments(data,article,limit=20){
   try{
     const results=Array.isArray(data&&data.results)?data.results:[];
@@ -3684,6 +3700,45 @@ Return ONLY the rewritten sentence.`,
   return {article:working, rewritten, totalFlagged:flagged.length, targeted:toRewrite.length, flags:flagged.slice(0,20).map(x=>({type:'sentence',text:x.text,probability:Math.round((x.prob||0)*100)}))};
 }
 
+async function humaniseVisibleFlags(article, flags, {tov, brandPov, bannedWords, maxRewrites=8}={}){
+  const usable=(flags||[]).filter(f=>(f.text||'').trim().length>=40).slice(0,maxRewrites);
+  if(!usable.length)return null;
+  let working=article;
+  let rewritten=0;
+  const defaultBanList=['landscape','navigate','leverage','comprehensive','robust','streamline','cutting-edge',"in today's",'dive into','delve into','game-changer','moreover','furthermore','consequently','revolutionize','harness','elevate','realm','tapestry','seamless','transformative','multifaceted','utilize','utilise','facilitate','paramount','crucial','essential','in conclusion','unprecedented','ever-evolving','at the forefront','cornerstone','bespoke','vibrant','dynamic'];
+  const banList=((bannedWords&&bannedWords.length)?bannedWords:defaultBanList).slice(0,40).join(', ');
+  const tovLine=tov?`Voice: ${tov.name} — ${tov.role}. ${tov.summary||''} Signature habits: ${tov.phrases||''}`:'';
+  const povLine=(brandPov||'').split('\n').slice(0,5).join(' ');
+  for(const item of usable){
+    const target=(item.text||'').trim();
+    if(!target)continue;
+    try{
+      const fresh=await aiRoute('humanisation',
+        `You rewrite one detector-flagged passage at a time. Preserve every fact, entity, number, jurisdiction, regulator, and SEO term. Make the passage more specific, less symmetrical, and more like a practitioner note. No preamble. ${tovLine} ${povLine?'Context: '+povLine:''}`.trim(),
+        `Rewrite this flagged passage only. Keep the exact meaning, facts, and terminology. Break formulaic rhythm, remove generic phrasing, vary sentence shape, and add practical texture only if supported by the text.\n\nBanned words: ${banList}\n\nPassage:\n${target}\n\nReturn only the rewritten passage.`,
+        Math.min(900, Math.max(280, target.split(/\s+/).length*3)),
+        {temperature:0.84,operation:'humanisation'}
+      );
+      const clean=(fresh||'').trim().replace(/^```[\s\S]*?\n?/,'').replace(/\n?```$/,'').replace(/^["'“”‘’]+|["'“”‘’]+$/g,'').replace(/\s+/g,' ');
+      if(!clean||clean.length<target.length*0.5||clean.length>target.length*2.4)continue;
+      const replaced=_replaceApproxSentence(working,target,clean);
+      if(!replaced.matched){
+        const shortTarget=target.slice(0,Math.min(target.length,420));
+        const shortReplaced=_replaceApproxSentence(working,shortTarget,clean);
+        if(!shortReplaced.matched)continue;
+        working=shortReplaced.text;
+      }else{
+        working=replaced.text;
+      }
+      rewritten++;
+    }catch(e){
+      console.warn('[humaniseVisibleFlags] rewrite failed:',(e.message||e));
+    }
+  }
+  if(rewritten===0)return null;
+  return {article:working, rewritten, totalFlagged:(flags||[]).length, targeted:usable.length, flags:usable};
+}
+
 async function humaniseLikelyAiParagraphs(article, {tov, brandPov, bannedWords, maxRewrites=4}={}){
   const flagged=likelySyntheticParagraphs(article,maxRewrites);
   if(!flagged.length)return null;
@@ -3774,6 +3829,38 @@ async function testCopyleaksConnection(){
   }
 }
 
+async function calibrateCopyleaks(){
+  if(!isCurrentUserAdmin()){alert('Only admins can calibrate Copyleaks.');return;}
+  const msg=E('gzTestMsg');
+  if(msg){msg.innerHTML='<span class="sp"></span> Running Copyleaks calibration…';msg.style.color='var(--text2)';}
+  const humanSample=`At 7:10 on Monday morning, the compliance lead at a mid-sized payments firm had a practical problem: the board wanted a MiCA readiness update by Friday, but the onboarding team was still using three separate checklists. That kind of operational mismatch is not dramatic. It is just expensive.
+
+The first useful step is to map which customer journeys actually touch crypto-asset services, then decide which controls need to move from policy documents into day-to-day workflow. In one firm we reviewed, the legal team had a clean policy for wallet screening, but the support team still handled edge cases through email. That gap matters because regulators rarely care whether the policy looked polished. They care whether the process worked on a bad Tuesday.
+
+There is also a commercial point here. If every borderline customer case has to be escalated to legal, onboarding slows down and the sales team starts routing around the process. That is where compliance stops being a control and becomes theatre. Better to define three decision paths, train the first-line team on the obvious cases, and reserve legal review for the genuinely messy ones.`;
+  const aiSample=`In today's rapidly evolving digital landscape, businesses must leverage robust and comprehensive compliance frameworks to navigate regulatory complexity. This transformative approach empowers organizations to streamline operations, enhance stakeholder trust, and unlock sustainable growth.
+
+Moreover, by adopting a holistic strategy, companies can ensure seamless alignment with emerging market demands and position themselves at the forefront of innovation. A dynamic compliance ecosystem enables teams to harness cutting-edge technologies while maintaining a proactive posture toward evolving rules and supervisory expectations.
+
+Furthermore, organizations that implement scalable governance models can facilitate cross-functional collaboration, optimize operational efficiency, and drive long-term value creation. Such frameworks are essential for unlocking resilience, improving transparency, and establishing a future-ready foundation in an increasingly complex marketplace.`;
+  try{
+    const human=await copyleaksPredict(humanSample,{sensitivity:1,explain:true});
+    const ai=await copyleaksPredict(aiSample,{sensitivity:1,explain:true});
+    const hd=_copyleaksDiagnostics(human);
+    const ad=_copyleaksDiagnostics(ai);
+    const hp=hd.score;
+    const ap=ad.score;
+    const ok=(hp!==null&&ap!==null&&hp<70&&ap>=70&&(ap-hp)>=20);
+    if(msg){
+      msg.textContent='Copyleaks calibration: human sample '+(hp??'—')+'% AI, AI-like sample '+(ap??'—')+'% AI'+(ok?'':' — treat as advisory until verified with real client samples');
+      msg.style.color=ok?'var(--green)':'var(--red)';
+    }
+    alog('settings','Copyleaks calibration','Human sample '+(hp??'—')+'% | AI-like sample '+(ap??'—')+'%');
+  }catch(e){
+    if(msg){msg.textContent='Copyleaks calibration failed: '+(e.message||e).substring(0,180);msg.style.color='var(--red)';}
+  }
+}
+
 async function calibrateGptzero(){
   if(!isCurrentUserAdmin()){alert('Only admins can calibrate GPTZero.');return;}
   const msg=E('gzTestMsg');
@@ -3835,13 +3922,21 @@ async function detectAI(text){
   // 1. Copyleaks (primary when configured) — server-side credentials only.
   if(_integrationStatus&&_integrationStatus.copyleaks){
     try{
-      const data=await copyleaksPredict(snippet,{sensitivity:2,explain:false});
+      const data=await copyleaksPredict(snippet,{sensitivity:1,explain:false});
       _lastCopyleaksData=data;
       const info=_copyleaksScoreInfo(data);
       if(info.pct!==null){
         console.log('[detectAI] Copyleaks:',info);
         if(typeof plog==='function'){
-          plog('Copyleaks diagnostic: score '+info.pct+'% via '+info.source+' | model '+(info.modelVersion||'unknown')+' | AI sections '+info.aiSections,'ldm');
+          plog('Copyleaks diagnostic: score '+info.pct+'% via '+info.source+' | sensitivity 1 | model '+(info.modelVersion||'unknown')+' | AI sections '+info.aiSections,'ldm');
+          if(info.pct>=90){
+            try{
+              const explained=await copyleaksPredict(snippet,{sensitivity:1,explain:true});
+              _lastCopyleaksData=explained;
+              const diag=_copyleaksDiagnostics(explained);
+              if(diag.explain&&diag.explain.length)plog('Copyleaks explain: '+diag.explain.join(' | ').slice(0,220),'ldm');
+            }catch(explainErr){plog('Copyleaks explain unavailable: '+String(explainErr.message||explainErr).slice(0,120),'ldm');}
+          }
         }
         return info.pct;
       }
@@ -5964,7 +6059,7 @@ function renderQueue(){
       </div>
     </div>`:''}
     ${q.status==='human_edit'?`<div style="margin-top:8px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px">
-      <div style="font-size:11px;font-weight:700;color:#991b1b;margin-bottom:4px">AI detection blocker: ${q.generatedAiScore||q.aiScore||'—'}% exceeds ${q.aiThreshold||S.settings.th||20}%</div>
+      <div style="font-size:11px;font-weight:700;color:#991b1b;margin-bottom:4px">AI detection blocker: ${q.generatedAiScore||q.aiScore||'—'}% exceeds ${q.aiThreshold||S.settings.th||30}%</div>
       <div style="font-size:11px;color:var(--text2);margin-bottom:8px">The draft is saved inside the app only. Edit the flagged sections, then re-check. It will not be sent to HubSpot, WordPress, or socials until it passes.</div>
       ${(q.aiFlags||[]).slice(0,4).map(f=>`<div style="font-size:11px;color:var(--text2);margin:4px 0;padding-left:8px;border-left:2px solid #fca5a5"><strong>${f.type||'flag'} ${f.probability?f.probability+'%':''}</strong> ${escapeHtml((f.text||'').slice(0,220))}${(f.text||'').length>220?'...':''}</div>`).join('')}
     </div>`:''}
@@ -5998,7 +6093,7 @@ function renderApprovalQaFlags(data={}){
   if(!flags.length&&!hist.length){el.style.display='none';el.innerHTML='';return;}
   el.style.display='block';
   el.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">AI detection QA</div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Final score: <strong>${data.aiScore??'—'}%</strong> · Threshold: <strong>${data.aiThreshold??(S.settings.th||20)}%</strong></div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Final score: <strong>${data.aiScore??'—'}%</strong> · Threshold: <strong>${data.aiThreshold??(S.settings.th||30)}%</strong></div>
     ${hist.length?`<div style="font-size:11px;color:var(--text2);margin-bottom:8px">${hist.map(h=>`Round ${h.round}: ${h.beforeScore??'—'}%${h.afterScore!=null?' → '+h.afterScore+'%':''} · ${h.method} · rewrote ${h.rewritten||0}/${h.targeted||0}`).join('<br>')}</div>`:''}
     ${flags.length?`<div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">Visible flagged segments</div>${flags.slice(0,8).map(f=>`<div style="font-size:11px;color:var(--text2);margin:5px 0;padding-left:8px;border-left:2px solid var(--amber)"><strong>${escapeHtml(f.type||'segment')} ${f.probability?escapeHtml(f.probability)+'%':''}</strong> ${escapeHtml((f.text||'').slice(0,260))}${(f.text||'').length>260?'...':''}${f.reason?`<div style="color:var(--text3)">Reason: ${escapeHtml(f.reason)}</div>`:''}</div>`).join('')}`:''}`;
 }
@@ -6013,7 +6108,7 @@ function findQ(qid){
 function humanEditStats(q){
   const flags=q.aiFlags||[];
   const score=q.generatedAiScore??q.aiScore??'—';
-  const threshold=q.aiThreshold||S.settings.th||20;
+  const threshold=q.aiThreshold||S.settings.th||30;
   const high=flags.filter(f=>(parseInt(f.probability)||0)>=90).length;
   return {flags,score,threshold,high};
 }
@@ -6114,7 +6209,7 @@ async function recheckHumanEdit(qid){
     const score=await detectAI(edited);
     const flags=getAiFlagsFromLastScan(edited);
     q.generatedArticle=edited;q.generatedHtml='<div>'+markdownToHtml(edited)+'</div>';q.generatedAiScore=score;q.aiScore=score;q.aiFlags=flags;
-    const thresh=q.aiThreshold||parseInt(S.settings.th)||20;
+    const thresh=q.aiThreshold||parseInt(S.settings.th)||30;
     if(score<=thresh){
       q.humanEditedArticle=edited;
       q.status='waiting';
@@ -6624,7 +6719,7 @@ ${brandPov}
 ${evidenceBlock}
 
 	CRITICAL — WRITE A USEFUL, EVIDENCE-LED PRACTITIONER ARTICLE:
-	The first draft should be accurate, specific, useful, and commercially grounded. Do not try to "sound human" through tricks. Do not mention AI detection, originality scores, or detector avoidance. A later quality gate will evaluate style; your job here is to produce a strong article.
+	The first draft should be accurate, specific, useful, and commercially grounded. Do not write a generic "blog article template." The piece should read like a practitioner briefing a client after reviewing the source material, with a clear argument, a few sharp details, and natural unevenness in structure. Do not mention AI detection, originality scores, or detector avoidance.
 
 BRAND SUBSTANCE (highest priority — this is what makes the piece feel like ${isNevis?'NEVISiGaming':'obtained.com'}):
 - The opening paragraph must include one specific, dated market signal (a named company's deal, a regulatory move, a regulator's statement) — not a generic intro.
@@ -6637,6 +6732,9 @@ BRAND SUBSTANCE (highest priority — this is what makes the piece feel like ${i
 	- Show your working. When you make a claim, follow it with the reason, trade-off, or operational implication.
 	- If the market consensus is weak or misleading, say so plainly and explain why.
 	- Use plain English and varied paragraph lengths naturally. Avoid patterned openings and repeated section templates.
+	- Mix section shapes: one section may be three short paragraphs, another may be one longer explanation plus a table, another may be a pointed two-sentence implication. Do not make every H2 follow the same rhythm.
+	- Include at least two concrete "operator reality" details where appropriate: onboarding queues, legal review bottlenecks, PSP fallback routing, licence scope, banking access, treasury delays, monitoring handoffs, audit trail evidence, board reporting, or regulator follow-up questions.
+	- Use one mild, natural aside if it fits the voice. Example style: "That sounds administrative. It isn't." Do not overdo this.
 	- Prefer prose. Use a table only when it genuinely helps compare concrete items such as jurisdictions, rails, timelines, fees, or regulators.
 	
 	FACTUAL LOCK:
@@ -6653,6 +6751,8 @@ Use plain English alternatives: "use" not "utilise", "help" not "facilitate", "s
 	- No "In conclusion" closes.
 	- No "crucial" or "essential" in headings — or anywhere.
 	- No transition-word-starts on every paragraph.
+	- No symmetrical section formula such as: context paragraph → benefit paragraph → conclusion paragraph repeated under every H2.
+	- No abstract noun stacks such as "regulatory transformation framework" or "compliance optimisation strategy."
 ${seoBlock}${competitorBlock}${doNotRepeatBlock}${formattingBlock}`;
 
     const userPrompt=`Blog article brief for ${siteName}:
@@ -6670,6 +6770,7 @@ Output format:
 - Blank line
 - Then the full article with H2 subheadings in markdown (##)
 - Prose paragraphs; avoid bullet points unless comparing 3+ concrete items
+- Use one short, direct "what this means" paragraph after the most important H2.
 - Include the Standing CTA verbatim as the final line${regenBlock}`;
     // ════════════════════════════════════════════════════════════════
 	    // MULTI-MODEL DRAFTING — routed by task:
@@ -6737,11 +6838,15 @@ Rules:
 	WHAT TO IMPROVE:
 	• Strengthen the commercial argument and make each section feel like it was written by someone who understands the operational consequences.
 	• Vary rhythm naturally. Some paragraphs can be short and pointed; others can explain a trade-off in more depth.
+	• Break any repeated H2 pattern. If every section has the same shape, rewrite the structure of at least two sections.
+	• Add practical texture where the facts support it: a bottleneck, decision point, workflow issue, board-level implication, regulator question, or operator trade-off.
 	• Remove repeated sentence structures and formulaic paragraph openings.
 	• Use contractions where they fit the selected voice, but do not force them into every sentence.
 	• Add editorial judgment only where it is supported by the facts.
 	• Add a practical qualifier or caveat where regulated claims could otherwise sound too absolute.
 	• Remove all of these banned words/phrases if present (replace with plain-English): landscape, navigate, leverage, comprehensive, robust, streamline, cutting-edge, in today's, it's worth noting, dive into, delve into, game-changer, moreover, furthermore, consequently, revolutionize, harness, elevate, realm, tapestry, seamless, transformative, multifaceted, utilize, utilise, facilitate, paramount, crucial, essential, in conclusion, unprecedented, ever-evolving, at the forefront, cornerstone, bespoke, vibrant, dynamic, time-tested, myriad, plethora.
+
+	Do not make the article more casual than the brand allows. Make it more specific, less symmetrical, and more like an expert's briefing.
 
 	Return ONLY the rewritten article. First line must be the exact TITLE: line from the input.`,
 	        `Draft to rewrite (${draftWc} words — keep within 95–105% of this count):\n\n${draft}`,
@@ -6771,8 +6876,10 @@ WHAT TO DO:
 2. Smooth any awkward transitions between what were previously two different models' styles.
 3. If two consecutive sentences have identical structure, rewrite the second one.
 4. Ensure contractions are used throughout (don't, won't, we've, they're).
-5. Do NOT change any facts, statistics, entity names, or SEO keywords.
-6. Do NOT shorten the article.
+5. Break overly neat section symmetry. Keep the headings, but vary paragraph count, sentence length, and level of detail.
+6. Add one practical "what this means" observation if the article lacks one.
+7. Do NOT change any facts, statistics, entity names, or SEO keywords.
+8. Do NOT shorten the article.
 
 Return the full polished article. First line must be the TITLE: line.`,
 	        `Article to polish:\n\n${rewritten}`,
@@ -6904,7 +7011,7 @@ Return the full polished article. First line must be the TITLE: line.`,
 	        psd('appr','dk');pss('appr','After edit');
 	        psd('hs','dk');pss('hs','Blocked');
 	        psd('soc','dk');pss('soc','Blocked');
-	        qi.status='human_edit';qi.aiScore=100;qi.generatedAiScore=100;qi.aiThreshold=parseInt(cfg.th)||15;
+	        qi.status='human_edit';qi.aiScore=100;qi.generatedAiScore=100;qi.aiThreshold=parseInt(cfg.th)||30;
 	        qi.errorReason='Needs human edit: regulated review found claims requiring human verification';
 	        qi.generatedTitle=title;qi.generatedArticle=article;qi.generatedHtml='<div>'+markdownToHtml(article)+'</div>';
 	        qi.aiFlags=(review.flags||[]).map(f=>({type:f.type||'compliance',text:f.text||f.reason||'Compliance-sensitive claim requires review',probability:100,reason:f.reason||review.summary||'Regulated review gate'}));
@@ -6920,7 +7027,7 @@ Return the full polished article. First line must be the TITLE: line.`,
 	  }
 
 	  // AI Detection loop — strict threshold enforcement
-	  const thresh=parseInt(cfg.th)||15;
+	  const thresh=parseInt(cfg.th)||30;
 	  const maxRounds=5;
 	  let aiBlocked=false;
 	  let aiStopReason='';
@@ -6965,6 +7072,21 @@ Return the full polished article. First line must be the TITLE: line.`,
         // Phase 1 — SURGICAL: rewrite only GPTZero-flagged sentences.
         // This is far safer than full rewrites: preserves structure, length, and any parts that already read human.
         let segmentResult=null;
+        if(latestAiFlags.length){
+          try{
+            segmentResult=await humaniseVisibleFlags(article, latestAiFlags, {tov, brandPov, maxRewrites:8});
+            if(segmentResult){
+              const beforeScore=aiScore;
+              article=segmentResult.article;
+              rewriteHistory.push({round,beforeScore,method:'detector flagged segments',flagged:segmentResult.totalFlagged,targeted:segmentResult.targeted,rewritten:segmentResult.rewritten,flags:segmentResult.flags||latestAiFlags});
+              plog('Detector-guided rewrite — rewrote '+segmentResult.rewritten+'/'+segmentResult.targeted+' flagged segment'+(segmentResult.rewritten===1?'':'s'),'lok');
+              psd('hum','do');pss('hum','Round '+round+': '+segmentResult.rewritten+' flagged segments');
+              continue;
+            }
+          }catch(flagErr){
+            plog('Detector-guided rewrite skipped: '+(flagErr.message||flagErr)+' — trying provider-specific rewrite','ldm');
+          }
+        }
         if(_lastGptzeroData){
           try{
             segmentResult=await humaniseFlaggedSentences(article, _lastGptzeroData, {tov, maxRewrites:15});
@@ -8283,7 +8405,7 @@ function loadSettingsUI(){
   if(E('spt'))E('spt').value=s.pt||'09:00';
   if(E('spo'))E('spo').value=s.po||1;
   if(E('swc'))E('swc').value=s.wc||'900';
-  if(E('sth'))E('sth').value=s.th||15;
+  if(E('sth'))E('sth').value=s.th||30;
   if(E('saimode'))E('saimode').value=s.aiMode||'regulated';
   if(E('stagmax'))E('stagmax').value=s.tagMax||5;
   if(E('scta'))E('scta').value=s.cta||'Ready to simplify your payments or navigate licensing? Visit obtained.com to explore our solutions.';
@@ -8334,7 +8456,7 @@ async function saveSettings(){
     anthropicKey:v('sak'),openaiKey:v('soai'),sapling:v('ss'),ahrefsKey:v('sahrefs'),gptzeroKey:v('sgptz'),
     hsToken:v('sht')||HS_TOKEN,hsBlog:v('shb')||HS_BLOG,
     li:v('sli'),fb:v('sfb'),pt:v('spt'),po:parseInt(v('spo'))||1,
-    wc:v('swc'),th:parseInt(v('sth'))||15,aiMode:v('saimode')||'regulated',cta:v('scta'),tagMax:parseInt(v('stagmax'))||5,
+    wc:v('swc'),th:parseInt(v('sth'))||30,aiMode:v('saimode')||'regulated',cta:v('scta'),tagMax:parseInt(v('stagmax'))||5,
     wpUrl:v('swpurl'),wpUser:v('swpuser'),wpPass:v('swppass')
   };
   // Push to server (shared org settings) — admin only
