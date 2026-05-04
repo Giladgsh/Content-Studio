@@ -29,6 +29,8 @@ This combined release packages the previously pending Content Studio updates int
 - Improved calibration samples so the human and AI-like checks are longer and more meaningful.
 - Added clearer calibration diagnostics showing score, predicted class, and confidence.
 - Kept strict AI-detection blocking behavior in place for now.
+- Added Copyleaks as the primary AI detector when `COPYLEAKS_EMAIL` and `COPYLEAKS_API_KEY` are configured in Netlify.
+- GPTZero remains secondary/advisory when calibration fails.
 
 ### WordPress Publishing
 
@@ -48,6 +50,7 @@ This combined release packages the previously pending Content Studio updates int
 - `netlify/functions/config.mjs`
 - `netlify/functions/openai.mjs`
 - `netlify/functions/wordpress.mjs`
+- `netlify/functions/copyleaks.mjs`
 - `docs/AI_MODEL_ROUTING_PLAN.md`
 - `docs/COMBINED_RELEASE_NOTES.md`
 
