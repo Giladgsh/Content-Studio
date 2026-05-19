@@ -4,6 +4,9 @@ function appRole(role) {
   if (role === 'platform_owner' || role === 'client_admin') return 'admin';
   if (role === 'reviewer') return 'editor';
   if (role === 'viewer') return 'writer';
+  if (role === 'sdr_manager') return 'sdr_manager';
+  if (role === 'sdr') return 'sdr';
+  if (role === 'bdm') return 'bdm';
   return role || 'writer';
 }
 
@@ -30,6 +33,7 @@ export default async (req) => {
       name: auth.user.user_metadata?.name || auth.user.email,
       role: appRole(auth.membership.role),
       platformRole: auth.membership.role,
+      permissions: Array.isArray(auth.membership.permissions) ? auth.membership.permissions : [],
       sites: ['obtained', 'nevis'],
     },
     membership: auth.membership,

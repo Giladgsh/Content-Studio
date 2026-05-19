@@ -1028,6 +1028,7 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
   <div class="brand"><a href="https://finmp-contentapp-website.netlify.app/" target="_blank" style="display:inline-flex;align-items:center;text-decoration:none"><img src="https://finmp-contentapp-website.netlify.app/finmp-logo.png" alt="FinMP" style="height:18px;margin-right:10px;filter:brightness(0) invert(1)"></a><span>Content Studio</span></div>
   <nav class="nav">
     <button class="nb on" id="nb-dashboard" onclick="nav('dashboard')">Dashboard</button>
+    <button class="nb sdr-only" id="nb-sdr" onclick="nav('sdr')" style="display:none">AI SDR</button>
     <button class="nb" id="nb-brief" onclick="nav('brief')">Daily brief</button>
     <button class="nb" id="nb-sources" onclick="nav('sources')">Sources</button>
     <button class="nb" id="nb-pipeline" onclick="nav('pipeline')">Content pipeline</button>
@@ -1093,6 +1094,106 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
       <h2>Attention</h2>
       <p>Work that needs review before distribution.</p>
       <div style="margin-top:12px" id="dashAttention"></div>
+    </article>
+  </section>
+</div>
+
+<!-- ══ AI SDR ENGINE ══ -->
+<div class="view" id="v-sdr">
+  <section class="studio-hero">
+    <div>
+      <p class="studio-eyebrow">Obtained AI SDR Engine</p>
+      <h1 class="studio-h1">Audience, lead, and outreach command center.</h1>
+      <p class="studio-lead">Build regulated-market audiences, shape SDR personas, draft safe outreach, and move only engaged or qualified leads into HubSpot CRM.</p>
+    </div>
+    <div class="studio-side">
+      <div class="studio-mini"><span>SDR profiles</span><strong id="sdrMetricProfiles">—</strong></div>
+      <div class="studio-mini"><span>Audience plans</span><strong id="sdrMetricAudiences">—</strong></div>
+      <div class="studio-mini"><span>Approval queue</span><strong id="sdrMetricApprovals">—</strong></div>
+    </div>
+  </section>
+
+  <section class="studio-grid">
+    <article class="studio-panel studio-wide">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">
+        <div>
+          <h2>AI Audience Builder</h2>
+          <p>Generate focused account and lead audiences from ICP, vertical, geography, buying signals, CRM strategy, public sources, and future connected providers.</p>
+        </div>
+        <span class="badge bca">Approval-first</span>
+      </div>
+      <div class="g2">
+        <div class="fi"><label>AI SDR persona</label><select id="sdrAudienceProfile" style="font-size:12px"></select></div>
+        <div class="fi"><label>Vertical</label><select id="sdrAudienceVertical" style="font-size:12px">
+          <option>iGaming licenses</option>
+          <option>Financial Institutions</option>
+          <option>Payments / gateway / orchestration</option>
+          <option>CASP / VASP / MiCA</option>
+          <option>M&A - iGaming</option>
+          <option>M&A - Payments</option>
+          <option>Banking / safeguarding / PSP introductions</option>
+          <option>Referrers and introducers</option>
+        </select></div>
+      </div>
+      <div class="g2">
+        <div class="fi"><label>Geography / markets</label><input id="sdrAudienceGeo" placeholder="EU, UK, UAE, LATAM, Africa"/></div>
+        <div class="fi"><label>Company types</label><input id="sdrAudienceCompanyTypes" placeholder="operators, EMI applicants, PSPs, platforms"/></div>
+      </div>
+      <div class="g2">
+        <div class="fi"><label>Target job titles</label><input id="sdrAudienceTitles" placeholder="Founder, CEO, Head of Compliance, General Counsel"/></div>
+        <div class="fi"><label>Buying signal</label><input id="sdrAudienceTrigger" placeholder="new market entry, licensing pressure, banking friction, event attendance"/></div>
+      </div>
+      <div class="fi">
+        <label>Source strategy</label>
+        <textarea id="sdrAudienceSources" rows="2" placeholder="HubSpot CRM reactivation, regulatory registers, event exhibitors, partner lists, Apollo/Sales Navigator once connected" style="font-size:12px"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn bs bp" id="sdrBuildAudienceBtn" onclick="buildSdrAudience()">Build audience plan</button>
+        <button class="btn bs" onclick="loadSdrWorkspace()">Refresh</button>
+        <span id="sdrAudienceMsg" style="font-size:11px;color:var(--text3)"></span>
+      </div>
+    </article>
+
+    <article class="studio-panel studio-narrow">
+      <h2>Guardrails</h2>
+      <p>Autonomous mode is visible for roadmap planning but disabled by default.</p>
+      <div style="margin-top:12px">
+        <div class="notice" style="margin-bottom:8px"><strong>No unauthorized LinkedIn scraping.</strong><br/>Use approved CRM, public, event, regulatory, Apollo, or Sales Navigator workflows.</div>
+        <div class="notice" style="margin-bottom:8px"><strong>Risk flags require approval.</strong><br/>Pricing, guarantees, legal/regulatory questions, banking approval, M&A, budget, and low confidence.</div>
+      </div>
+    </article>
+  </section>
+
+  <section class="studio-grid">
+    <article class="studio-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+        <div><h2>SDR Profiles</h2><p>Vertical and individual AI SDR personas.</p></div>
+        <span class="badge bse">Client-scoped</span>
+      </div>
+      <div id="sdrProfilesList"></div>
+    </article>
+
+    <article class="studio-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+        <div><h2>Audience Plans</h2><p>AI-built segments ready for account targeting.</p></div>
+        <span class="badge bca">AI assisted</span>
+      </div>
+      <div id="sdrAudienceList"></div>
+    </article>
+  </section>
+
+  <section class="studio-grid">
+    <article class="studio-panel">
+      <h2>Outreach Drafts</h2>
+      <p>Drafted messages will appear here once lead targets are connected.</p>
+      <div id="sdrMessagesList" style="margin-top:12px"></div>
+    </article>
+    <article class="studio-panel">
+      <h2>HubSpot CRM Strategy</h2>
+      <p>CRM-first is best for reactivation and calibration. Net-new prospecting should use approved connectors next.</p>
+      <div style="margin-top:12px" class="notice">
+        First sync layer supports contact/company search and create/update. Deal creation stays manual for now.
+      </div>
     </article>
   </section>
 </div>
@@ -1696,6 +1797,15 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
           <label>Facebook caption <span style="font-weight:400;color:var(--text3)">(editable)</span></label>
           <textarea id="appr-fb-caption" rows="3" style="font-size:12px"></textarea>
         </div>
+        <div class="fi" style="margin-bottom:8px">
+          <label>Instagram caption <span style="font-weight:400;color:var(--text3)">(editable)</span></label>
+          <textarea id="appr-ig-caption" rows="3" style="font-size:12px"></textarea>
+        </div>
+        <div class="fi" style="margin-bottom:8px">
+          <label>Instagram image URL <span style="font-weight:400;color:var(--text3)">(required for direct Instagram publishing)</span></label>
+          <input id="appr-ig-image-url" style="font-size:12px" placeholder="https://.../image.jpg"/>
+          <div class="hint">Instagram direct publishing requires a public HTTPS image URL. Generated draft images must first be hosted by WordPress, HubSpot, or another public media library.</div>
+        </div>
         <div class="fi" style="margin-bottom:0">
           <label>X / Twitter caption <span style="font-weight:400;color:var(--text3)">(editable)</span></label>
           <textarea id="appr-tw-caption" rows="2" style="font-size:12px"></textarea>
@@ -1705,8 +1815,13 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
       <div id="appr-social-actions" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <button class="btn bs" onclick="copySocial('appr-li-caption','LinkedIn')">Copy LinkedIn</button>
         <button class="btn bs" onclick="copySocial('appr-fb-caption','Facebook')">Copy Facebook</button>
+        <button class="btn bs" onclick="copySocial('appr-ig-caption','Instagram')">Copy Instagram</button>
         <button class="btn bs" onclick="copySocial('appr-tw-caption','X/Twitter')">Copy X/Twitter</button>
+        <button class="btn bs bsuc" id="appr-li-post-btn" onclick="postLinkedIn()">Post to LinkedIn</button>
+        <button class="btn bs bsuc" id="appr-fb-post-btn" onclick="postFacebook()">Post to Facebook Page</button>
+        <button class="btn bs bsuc" id="appr-ig-post-btn" onclick="postInstagram()">Post to Instagram</button>
         <span id="appr-copy-msg" style="font-size:11px;color:var(--green);font-weight:600;align-self:center"></span>
+        <span id="appr-social-post-msg" style="font-size:11px;color:var(--text3);font-weight:600;align-self:center"></span>
       </div>
 
       <div class="dv"></div>
@@ -1974,6 +2089,8 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
       <div class="stat"><div class="sv">Admin</div><div class="sl2">Full platform and client control</div></div>
       <div class="stat"><div class="sv">Editor</div><div class="sl2">Can create, edit, and suggest sources</div></div>
       <div class="stat"><div class="sv">Reviewer</div><div class="sl2">Approves compliance and publishing gates</div></div>
+      <div class="stat"><div class="sv">SDR</div><div class="sl2">Own AI SDR leads, drafts, and tasks</div></div>
+      <div class="stat"><div class="sv">SDR Manager</div><div class="sl2">Team SDR profiles, approvals, and reporting</div></div>
     </div>
   </div>
   <div class="card" style="margin-top:14px">
@@ -2005,6 +2122,9 @@ html.light .studio-hero:after{background-image:radial-gradient(rgba(14,15,31,0.0
           <select id="nuRole" style="font-size:12px">
             <option value="writer">Writer — can create content, submits for review</option>
             <option value="editor">Editor — can create, review, and publish content</option>
+            <option value="sdr">SDR — own AI SDR workspace</option>
+            <option value="sdr_manager">SDR Manager — SDR profiles, approvals, and reports</option>
+            <option value="bdm">BDM — qualified lead handovers</option>
             <option value="admin">Admin — full access + user management</option>
           </select>
         </div>
@@ -2208,7 +2328,7 @@ async function userAPI(action,data={}){
 // ── Per-user settings API ──
 // These keys are considered sensitive (API tokens, credentials) and are
 // scrubbed from localStorage once they are safely stored server-side.
-const SENSITIVE_SETTING_KEYS = ['anthropicKey','openaiKey','sapling','hsToken','li','fb','wpUrl','wpUser','wpPass','ahrefsKey','gptzeroKey'];
+const SENSITIVE_SETTING_KEYS = ['anthropicKey','openaiKey','sapling','hsToken','li','fb','wpUrl','wpUser','wpPass','ahrefsKey','gptzeroKey','linkedinToken','metaToken','instagramToken'];
 
 async function settingsAPI(action, payload = {}) {
   const token = getAuthToken();
@@ -2455,7 +2575,7 @@ async function validateSession(){
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||'Invalid session');
     activeClientId=d.client&&d.client.id||d.membership&&d.membership.client_id||'';
-    const session={userId:d.user.id,name:d.user.name,email:d.user.email,role:d.user.role,platformRole:d.user.platformRole,sites:d.user.sites||['obtained','nevis'],client:d.client,expires:Date.now()+60*60*1000};
+    const session={userId:d.user.id,name:d.user.name,email:d.user.email,role:d.user.role,platformRole:d.user.platformRole,permissions:d.user.permissions||d.membership?.permissions||[],sites:d.user.sites||['obtained','nevis'],client:d.client,expires:Date.now()+60*60*1000};
     localStorage.setItem(SESSION_KEY,JSON.stringify(session));
     return session;
   }catch(e){
@@ -2466,6 +2586,17 @@ async function validateSession(){
 }
 
 let currentSession=null;
+
+function hasPermission(permission){
+  const perms=Array.isArray(currentSession?.permissions)?currentSession.permissions:[];
+  return currentSession?.role==='admin'||perms.includes(permission);
+}
+function canUseSdr(){
+  return !!currentSession&&(hasPermission('use_sdr')||hasPermission('manage_sdr')||['sdr','sdr_manager','bdm'].includes(currentSession.role));
+}
+function canManageSdr(){
+  return !!currentSession&&(hasPermission('manage_sdr')||currentSession.role==='sdr_manager');
+}
 
 function showApp(session){
   currentSession=session;
@@ -2499,6 +2630,12 @@ function showApp(session){
   // Show writer-only notices (everything that isn't admin or editor — currently just 'writer')
   document.querySelectorAll('.writer-only').forEach(el=>{
     el.style.display=canEdit?'none':'';
+  });
+  document.querySelectorAll('.sdr-only').forEach(el=>{
+    el.style.display=canUseSdr()?'':'none';
+  });
+  document.querySelectorAll('.sdr-manager-only').forEach(el=>{
+    el.style.display=canManageSdr()?'':'none';
   });
   // Start 10-min inactivity auto-logout
   startInactivityTimer();
@@ -2688,7 +2825,7 @@ function getResetRequests(){try{return JSON.parse(localStorage.getItem(RESET_REQ
       // Sync per-user settings from server (also migrates+scrubs on first run)
       await syncSettingsFromServer();
       await loadIntegrationStatus();
-      if(valid.role!==local.role||valid.name!==local.name){
+      if(valid.role!==local.role||valid.name!==local.name||JSON.stringify(valid.permissions||[])!==JSON.stringify(local.permissions||[])){
         // Session updated on server — refresh UI
         showApp(valid);
       }
@@ -2754,7 +2891,7 @@ async function toggleUserRole(userId){
   if(!currentSession||currentSession.role!=='admin')return;
   if(userId===currentSession.userId){alert('You cannot change your own role.');return;}
   const users=getCachedUsers();const u=users.find(x=>x.id===userId);if(!u)return;
-  const cycle={writer:'editor',editor:'admin',admin:'writer'};
+  const cycle={writer:'editor',editor:'sdr',sdr:'sdr_manager',sdr_manager:'bdm',bdm:'admin',admin:'writer'};
   const newRole=cycle[u.role]||'writer';
   try{
     await userAPI('updateUser',{userId,updates:{role:newRole}});
@@ -2821,6 +2958,9 @@ function editUser(userId){
     <div style="margin-bottom:10px"><label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">Role</label><select id="euRole" style="width:100%;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px" ${isMe?'disabled':''}>
       <option value="writer" ${u.role==='writer'?'selected':''}>Writer</option>
       <option value="editor" ${u.role==='editor'?'selected':''}>Editor</option>
+      <option value="sdr" ${u.role==='sdr'?'selected':''}>SDR</option>
+      <option value="sdr_manager" ${u.role==='sdr_manager'?'selected':''}>SDR Manager</option>
+      <option value="bdm" ${u.role==='bdm'?'selected':''}>BDM</option>
       <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
     </select></div>
     <div style="margin-bottom:10px"><label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">Site access</label>
@@ -2872,7 +3012,14 @@ async function renderUserList(){
   if(!users.length){el.innerHTML='<div style="font-size:12px;color:var(--text3)">No users yet.</div>';return;}
   el.innerHTML=users.map(u=>{
     const isMe=currentSession&&u.id===currentSession.userId;
-    const roleBadge=u.role==='admin'?'<span class="badge bca" style="font-size:9px">Admin</span>':u.role==='editor'?'<span class="badge bok" style="font-size:9px">Editor</span>':'<span class="badge bwa" style="font-size:9px">Writer</span>';
+    const roleBadge={
+      admin:'<span class="badge bca" style="font-size:9px">Admin</span>',
+      editor:'<span class="badge bok" style="font-size:9px">Editor</span>',
+      sdr:'<span class="badge bin" style="font-size:9px">SDR</span>',
+      sdr_manager:'<span class="badge bse" style="font-size:9px">SDR Manager</span>',
+      bdm:'<span class="badge bgr" style="font-size:9px">BDM</span>',
+      writer:'<span class="badge bwa" style="font-size:9px">Writer</span>'
+    }[u.role]||'<span class="badge bwa" style="font-size:9px">'+escapeHtml(u.role||'User')+'</span>';
     const statusBadge=u.active?'<span class="badge bok" style="font-size:9px">Active</span>':'<span class="badge ber" style="font-size:9px">Deactivated</span>';
     const userSites=u.sites||['obtained','nevis'];
     const siteBadges=userSites.map(s=>s==='obtained'?'<span class="badge bin" style="font-size:9px">obtained.com</span>':'<span class="badge big" style="font-size:9px">nevisigaming.com</span>').join(' ');
@@ -4101,6 +4248,7 @@ function nav(id){
   if(view)view.classList.add('on');
   if(tab)tab.classList.add('on');
   if(id==='dashboard')renderDashboard();
+  if(id==='sdr')loadSdrWorkspace();
   if(id==='published')renderPublished();
   if(id==='queue')renderQueue();
   if(id==='pipeline')renderPipelineWorkbench();
@@ -4147,6 +4295,135 @@ function renderDashboard(){
       <div><strong style="display:block;font-size:14px">${a.title}</strong><span style="display:block;font-size:12px;color:var(--text2);margin-top:3px">${a.meta}</span></div>
       <span class="badge ${a.cls}" style="font-size:9px">${a.label}</span>
     </div>`).join('');
+  }
+}
+
+// ── AI SDR ENGINE ──
+let _sdrWorkspace={profiles:[],audiences:[],messages:[],metrics:{}};
+async function sdrAPI(action,payload={}){
+  const r=await fetch(apiBase()+'/sdr',{method:'POST',headers:authHeaders(),body:JSON.stringify({action,clientId:activeClientId,...payload})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||'AI SDR API error '+r.status);
+  return d;
+}
+function sdrRoleLabel(){
+  if(!currentSession)return '—';
+  if(currentSession.role==='sdr_manager')return 'SDR Manager';
+  if(currentSession.role==='sdr')return 'SDR';
+  if(currentSession.role==='bdm')return 'BDM';
+  return currentSession.role==='admin'?'Admin':'Team member';
+}
+async function loadSdrWorkspace(){
+  if(!canUseSdr()){
+    ['sdrProfilesList','sdrAudienceList','sdrMessagesList'].forEach(id=>{const el=E(id);if(el)el.innerHTML='<div class="empty">AI SDR access is not enabled for your role yet.</div>';});
+    return;
+  }
+  const msg=E('sdrAudienceMsg');if(msg){msg.textContent='Loading AI SDR workspace...';msg.style.color='var(--text3)';}
+  try{
+    const d=await sdrAPI('overview');
+    _sdrWorkspace={profiles:d.profiles||[],audiences:d.audiences||[],messages:d.messages||[],metrics:d.metrics||{}};
+    renderSdrWorkspace();
+    if(msg)msg.textContent='Loaded · '+sdrRoleLabel();
+  }catch(e){
+    if(msg){msg.textContent='AI SDR error: '+e.message;msg.style.color='var(--red)';}
+  }
+}
+function renderSdrWorkspace(){
+  const w=_sdrWorkspace||{profiles:[],audiences:[],messages:[],metrics:{}};
+  if(E('sdrMetricProfiles'))E('sdrMetricProfiles').textContent=w.metrics?.profiles??w.profiles.length;
+  if(E('sdrMetricAudiences'))E('sdrMetricAudiences').textContent=w.metrics?.audiences??w.audiences.length;
+  if(E('sdrMetricApprovals'))E('sdrMetricApprovals').textContent=w.metrics?.pendingApprovals??0;
+  const profileSel=E('sdrAudienceProfile');
+  if(profileSel){
+    const cur=profileSel.value;
+    profileSel.innerHTML='<option value="">Select profile...</option>'+w.profiles.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} · ${escapeHtml(p.vertical)}</option>`).join('');
+    if(cur)profileSel.value=cur;
+    if(!profileSel.value&&w.profiles[0])profileSel.value=w.profiles[0].id;
+  }
+  renderSdrProfiles();
+  renderSdrAudiences();
+  renderSdrMessages();
+}
+function renderSdrProfiles(){
+  const el=E('sdrProfilesList');if(!el)return;
+  const rows=_sdrWorkspace.profiles||[];
+  if(!rows.length){el.innerHTML='<div class="empty">No AI SDR profiles yet. Run the SDR migration seed or create one from the manager setup.</div>';return;}
+  el.innerHTML=rows.map(p=>{
+    const triggers=Array.isArray(p.human_approval_triggers)?p.human_approval_triggers:(Array.isArray(p.humanApprovalTriggers)?p.humanApprovalTriggers:[]);
+    const titles=Array.isArray(p.target_job_titles)?p.target_job_titles:[];
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div>
+          <strong style="display:block;font-size:14px">${escapeHtml(p.name)}</strong>
+          <span style="display:block;font-size:12px;color:var(--text2);margin-top:3px">${escapeHtml(p.vertical)} · ${escapeHtml(p.operating_mode||'approval')} mode</span>
+        </div>
+        <span class="badge ${p.autonomous_enabled?'ber':'bse'}" style="font-size:9px">${p.autonomous_enabled?'Autonomous on':'Autonomous off'}</span>
+      </div>
+      <p style="font-size:12px;color:var(--text2);line-height:1.6;margin:8px 0 0">${escapeHtml(p.icp_definition||'No ICP definition yet.')}</p>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">
+        ${titles.slice(0,4).map(t=>`<span class="badge bgr" style="font-size:9px">${escapeHtml(t)}</span>`).join('')}
+        ${triggers.slice(0,3).map(t=>`<span class="badge bwa" style="font-size:9px">${escapeHtml(t)}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderSdrAudiences(){
+  const el=E('sdrAudienceList');if(!el)return;
+  const rows=_sdrWorkspace.audiences||[];
+  if(!rows.length){el.innerHTML='<div class="empty">No audience plans yet. Build the first one above.</div>';return;}
+  el.innerHTML=rows.map(a=>{
+    const risk=Array.isArray(a.risk_flags)?a.risk_flags:[];
+    const actions=Array.isArray(a.recommended_next_actions)?a.recommended_next_actions:[];
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div>
+          <strong style="display:block;font-size:14px">${escapeHtml(a.name)}</strong>
+          <span style="display:block;font-size:12px;color:var(--text2);margin-top:3px">${escapeHtml(a.vertical)} · confidence ${Number(a.confidence_score||0)}%</span>
+        </div>
+        <span class="badge ${risk.length?'bwa':'bse'}" style="font-size:9px">${risk.length?risk.length+' flags':'Clear'}</span>
+      </div>
+      <p style="font-size:12px;color:var(--text2);line-height:1.6;margin:8px 0 0">${escapeHtml(a.outreach_angle||'No outreach angle yet.')}</p>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">
+        ${(a.target_titles||[]).slice(0,4).map(t=>`<span class="badge bin" style="font-size:9px">${escapeHtml(t)}</span>`).join('')}
+        ${(a.buying_signals||[]).slice(0,3).map(t=>`<span class="badge bca" style="font-size:9px">${escapeHtml(t)}</span>`).join('')}
+      </div>
+      ${actions.length?`<div style="font-size:11px;color:var(--text3);margin-top:8px">Next: ${escapeHtml(actions[0].action||actions[0].title||'Review audience')}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function renderSdrMessages(){
+  const el=E('sdrMessagesList');if(!el)return;
+  const rows=_sdrWorkspace.messages||[];
+  if(!rows.length){el.innerHTML='<div class="empty">No outreach drafts yet. Drafting starts after lead targets are created from an audience.</div>';return;}
+  el.innerHTML=rows.map(m=>`<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;gap:12px"><strong style="font-size:13px">${escapeHtml(m.message_type||'draft')}</strong><span class="badge ${m.approval_required?'bwa':'bse'}" style="font-size:9px">${m.status}</span></div>
+    <p style="font-size:12px;color:var(--text2);line-height:1.6;margin:6px 0 0">${escapeHtml(String(m.body||'').slice(0,220))}</p>
+  </div>`).join('');
+}
+async function buildSdrAudience(){
+  if(!canUseSdr()){alert('AI SDR access is not enabled for your role yet.');return;}
+  const btn=E('sdrBuildAudienceBtn');const msg=E('sdrAudienceMsg');
+  if(btn)btn.disabled=true;
+  if(msg){msg.textContent='Building audience plan...';msg.style.color='var(--blue)';}
+  try{
+    const d=await sdrAPI('buildAudience',{
+      profileId:E('sdrAudienceProfile')?.value||null,
+      vertical:E('sdrAudienceVertical')?.value||'iGaming licenses',
+      geography:E('sdrAudienceGeo')?.value||'',
+      companyTypes:E('sdrAudienceCompanyTypes')?.value||'',
+      targetTitles:E('sdrAudienceTitles')?.value||'',
+      trigger:E('sdrAudienceTrigger')?.value||'',
+      sourcePreference:E('sdrAudienceSources')?.value||''
+    });
+    if(!_sdrWorkspace.audiences)_sdrWorkspace.audiences=[];
+    _sdrWorkspace.audiences=[d.audience,..._sdrWorkspace.audiences.filter(a=>a.id!==d.audience.id)];
+    renderSdrWorkspace();
+    alog('sdr','AI SDR audience built',d.audience.name+' · '+d.audience.vertical);
+    if(msg){msg.textContent='Audience created: '+d.audience.name;msg.style.color='var(--green)';}
+  }catch(e){
+    if(msg){msg.textContent='Audience builder error: '+e.message;msg.style.color='var(--red)';}
+  }finally{
+    if(btn)btn.disabled=false;
   }
 }
 
@@ -6490,6 +6767,8 @@ async function reviewArticle(queueId){
   const blogUrl='https://obtained.com/blog';
   E('appr-li-caption').value=(qi.generatedSocialCap||qi.title)+'\n\n'+blogUrl;
   E('appr-fb-caption').value=(qi.generatedSocialCap||qi.title)+'\n\n'+blogUrl;
+  if(E('appr-ig-caption'))E('appr-ig-caption').value=qi.generatedSocialCap||qi.title;
+  if(E('appr-ig-image-url'))E('appr-ig-image-url').value='';
   // Images
   const imgGrid=E('appr-img-grid');imgGrid.innerHTML='';
   E('appr-img-selected').style.display='none';E('appr-img-loading').style.display='none';E('appr-img-skip').style.display='none';
@@ -6506,7 +6785,7 @@ async function reviewArticle(queueId){
   }
   // Reset buttons and show publish block
   ['appr-hs-btn','skip-hs-btn','appr-done-btn','appr-reject-btn'].forEach(id=>{const b=E(id);if(b)b.disabled=false;});
-  ['appr-hs-status','appr-done-msg'].forEach(id=>{const e=E(id);if(e)e.textContent='';});
+  ['appr-hs-status','appr-done-msg','appr-social-post-msg'].forEach(id=>{const e=E(id);if(e)e.textContent='';});
   E('appr-writer-block').style.display='none';
   E('appr-publish-block').style.display='block';
   E('appr-review-info').style.display='block';
@@ -6557,7 +6836,7 @@ async function reviewArticle(queueId){
   E('approvalcard').scrollIntoView({behavior:'smooth',block:'start'});
   // Set up pending approval with restored content
   const revImgs=qi.generatedImages||[];
-  pendingApproval={qi,title:qi.generatedTitle||qi.title,html:qi.generatedHtml||'',article:qi.generatedArticle||'',aiScore,aiThreshold:qi.aiThreshold,aiFlags:qi.aiFlags||[],rewriteHistory:qi.aiRewriteHistory||[],tov,socialCap:qi.generatedSocialCap||'',seoTags:qi.generatedSeoTags||[],seoMeta:qi.generatedSeoMeta||'',seoSlug:qi.generatedSeoSlug||'',seoKeywords:qi.generatedSeoKeywords||[],seoOg:qi.generatedSeoOg||{},seoScore:qi.generatedSeoScore||0,images:revImgs,selectedImage:revImgs.length===1?0:null,imageAltText:qi.generatedImageAltText||qi.title,hsId:null,liDone:false,fbDone:false,rejected:false,submitted:false,targetSite:qi.targetSite||'obtained'};
+  pendingApproval={qi,title:qi.generatedTitle||qi.title,html:qi.generatedHtml||'',article:qi.generatedArticle||'',aiScore,aiThreshold:qi.aiThreshold,aiFlags:qi.aiFlags||[],rewriteHistory:qi.aiRewriteHistory||[],tov,socialCap:qi.generatedSocialCap||'',seoTags:qi.generatedSeoTags||[],seoMeta:qi.generatedSeoMeta||'',seoSlug:qi.generatedSeoSlug||'',seoKeywords:qi.generatedSeoKeywords||[],seoOg:qi.generatedSeoOg||{},seoScore:qi.generatedSeoScore||0,images:revImgs,selectedImage:revImgs.length===1?0:null,imageAltText:qi.generatedImageAltText||qi.title,hsId:null,liDone:false,fbDone:false,igDone:false,rejected:false,submitted:false,targetSite:qi.targetSite||'obtained'};
   // Wait for editor to finish
   await new Promise(resolve=>{approvalResolve=resolve;});
   E('approvalcard').style.display='none';
@@ -6570,7 +6849,7 @@ async function reviewArticle(queueId){
     qi.status='done';qi.hubspotId=pa.hsId;qi.aiScore=aiScore;persist();
     const sd2=siteData();
     if(!sd2.published)sd2.published=[];
-    const socCount=(pa.liDone?1:0)+(pa.fbDone?1:0);
+    const socCount=(pa.liDone?1:0)+(pa.fbDone?1:0)+(pa.igDone?1:0);
     sd2.published.push({id:'p'+Date.now(),topicId:qi.topicId,title:pa.title,category:qi.category,aiScore,hubspotId:pa.hsId,socialPosts:socCount,tovName:tov?.name||'',publishedAt:Date.now(),primaryKeyword:qi.primaryKeyword||'',targetSite:qi.targetSite||activeSite,publicUrl:pa.publicUrl||pa.url||''});
     persist();
     E('plstat').textContent='Published';E('plstat').className='badge bok';
@@ -7546,13 +7825,15 @@ Return JSON:
   const blogUrl=isNevis?'https://nevisigaming.com/blog':'https://obtained.com/blog';
   E('appr-li-caption').value=socialCap+'\n\n'+blogUrl;
   E('appr-fb-caption').value=socialCap+'\n\n'+blogUrl;
+  if(E('appr-ig-caption'))E('appr-ig-caption').value=socialCap;
+  if(E('appr-ig-image-url'))E('appr-ig-image-url').value='';
   // Generate shorter X/Twitter caption (max 280 chars)
   const twCap=socialCap.length>250?socialCap.substring(0,220)+'...\n\n'+blogUrl:socialCap+'\n\n'+blogUrl;
   if(E('appr-tw-caption'))E('appr-tw-caption').value=twCap;
   // Update social help text based on site
   if(E('appr-social-help'))E('appr-social-help').innerHTML=isNevis
-    ?'Copy captions below and post to your social channels. For LinkedIn, visit <a href="https://www.linkedin.com/company/nevis-igaming/" target="_blank" class="a">Nevis iGaming LinkedIn page</a>.'
-    :'Captions will be saved with your HubSpot blog draft. Schedule social posts from <strong>HubSpot → Marketing → Social</strong> after publishing.';
+    ?'Direct LinkedIn/Facebook publishing is available when the server-side channel is connected. Instagram also needs a public image URL. For manual posting, visit <a href="https://www.linkedin.com/company/nevis-igaming/" target="_blank" class="a">Nevis iGaming LinkedIn page</a>.'
+    :'Direct LinkedIn/Facebook publishing is available when connected. Captions are also saved with your HubSpot blog draft for later scheduling.';
 
   // Populate image grid
   const imgGrid=E('appr-img-grid');
@@ -7580,7 +7861,7 @@ Return JSON:
 
   // Reset approval button states
   ['appr-hs-btn','skip-hs-btn','appr-done-btn','appr-reject-btn','appr-submit-btn','appr-reject-btn-w'].forEach(id=>{const b=E(id);if(b)b.disabled=false;});
-  ['appr-hs-status','appr-done-msg','appr-submit-status'].forEach(id=>{const e=E(id);if(e)e.textContent='';});
+  ['appr-hs-status','appr-done-msg','appr-submit-status','appr-social-post-msg'].forEach(id=>{const e=E(id);if(e)e.textContent='';});
 
   // Show writer block or publish block based on role
   const isWriter=currentSession&&currentSession.role==='writer';
@@ -7601,7 +7882,7 @@ Return JSON:
   E('approvalcard').scrollIntoView({behavior:'smooth',block:'start'});
 
   // Store context for approval handlers
-  pendingApproval={qi,title,html:linkedHtml,article,aiScore,aiThreshold:thresh,aiFlags:latestAiFlags,rewriteHistory,tov,socialCap,seoTags,seoMeta,seoSlug,seoKeywords,seoOg,seoScore,images:generatedImages,selectedImage:generatedImages.length===1?0:null,imageAltText:imageAltText||title,hsId:null,liDone:false,fbDone:false,rejected:false,targetSite:qi.targetSite||'obtained'};
+  pendingApproval={qi,title,html:linkedHtml,article,aiScore,aiThreshold:thresh,aiFlags:latestAiFlags,rewriteHistory,tov,socialCap,seoTags,seoMeta,seoSlug,seoKeywords,seoOg,seoScore,images:generatedImages,selectedImage:generatedImages.length===1?0:null,imageAltText:imageAltText||title,hsId:null,liDone:false,fbDone:false,igDone:false,rejected:false,targetSite:qi.targetSite||'obtained'};
   // Auto-select publish destination based on queue item's target site
   if(E('appr-dest')){E('appr-dest').value=qi.targetSite==='nevis'?'wordpress':'hubspot';togglePublishDest();}
 
@@ -7640,7 +7921,7 @@ Return JSON:
 
   const sdPub=siteData();
   if(!sdPub.published)sdPub.published=[];
-  const socCount=(pa.liDone?1:0)+(pa.fbDone?1:0);
+  const socCount=(pa.liDone?1:0)+(pa.fbDone?1:0)+(pa.igDone?1:0);
   sdPub.published.push({id:'p'+Date.now(),topicId:qi.topicId,title,category:qi.category,aiScore,hubspotId:pa.hsId,socialPosts:socCount,tovName:tov?.name||'',publishedAt:Date.now(),primaryKeyword:qi.primaryKeyword||'',targetSite:qi.targetSite||activeSite,publicUrl:pa.publicUrl||pa.url||''});
   qi.status='done';qi.hubspotId=pa.hsId;qi.aiScore=aiScore;
   persist();plog('✓ Pipeline complete: '+title,'lok');
@@ -7695,6 +7976,7 @@ async function approveHS(){
             || imgJson?.defaultHostingUrl
             || '';
           if (featuredImage) {
+            if(E('appr-ig-image-url')&&!E('appr-ig-image-url').value)E('appr-ig-image-url').value=featuredImage;
             plog('Image uploaded successfully: '+featuredImage,'lok');
           } else if (first?.id || imgJson?.id) {
             // Fallback: fetch file info by ID
@@ -7813,6 +8095,7 @@ async function approveHS(){
       throw new Error(friendly);
     }
     pa.hsId=hd.id;
+    pa.publicUrl=hd.absoluteUrl||hd.url||pa.publicUrl||'';
     pa.liDone=!!liCaption;pa.fbDone=!!fbCaption;
     psd('hs','do');pss('hs','Draft created — ID '+hd.id);
     psd('soc','do');pss('soc','Saved with draft');
@@ -7888,6 +8171,86 @@ function copySocial(textareaId,label){
   navigator.clipboard.writeText(el.value).then(()=>{
     const msg=E('appr-copy-msg');if(msg){msg.textContent='✓ '+label+' copied!';setTimeout(()=>msg.textContent='',2000);}
   }).catch(()=>{el.select();document.execCommand('copy');});
+}
+
+async function socialPostRequest(endpoint, payload){
+  const r=await fetch(apiBase()+endpoint,{method:'POST',headers:authHeaders(),body:JSON.stringify({clientId:activeClientId,...payload})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||d.message||('HTTP '+r.status));
+  return d;
+}
+function setSocialPostMsg(text,kind=''){
+  const msg=E('appr-social-post-msg');if(!msg)return;
+  msg.textContent=text;
+  msg.style.color=kind==='ok'?'var(--green)':kind==='err'?'var(--red)':'var(--text3)';
+}
+function socialLinkFromCaption(text){
+  const match=String(text||'').match(/https?:\/\/\S+/);
+  return match?match[0].replace(/[),.;]+$/,''):'';
+}
+async function postLinkedIn(){
+  if(!pendingApproval)return;
+  if(!(_integrationStatus&&_integrationStatus.linkedin)){
+    setSocialPostMsg('LinkedIn needs setup in Netlify first.','err');
+    return;
+  }
+  const btn=E('appr-li-post-btn');if(btn)btn.disabled=true;
+  try{
+    setSocialPostMsg('Posting to LinkedIn...');
+    const caption=(E('appr-li-caption')?.value||'').trim();
+    const d=await socialPostRequest('/linkedin',{action:'post',caption,title:pendingApproval.title});
+    pendingApproval.liDone=true;
+    psd('soc','do');pss('soc','LinkedIn posted');
+    plog('LinkedIn post published'+(d.id?' — ID: '+d.id:''),'lok');
+    setSocialPostMsg('LinkedIn post published'+(d.id?' — '+d.id:''),'ok');
+  }catch(e){
+    plog('LinkedIn publish failed: '+e.message,'ler');
+    setSocialPostMsg('LinkedIn error: '+e.message,'err');
+    if(btn)btn.disabled=false;
+  }
+}
+async function postFacebook(){
+  if(!pendingApproval)return;
+  if(!(_integrationStatus&&_integrationStatus.facebook)){
+    setSocialPostMsg('Facebook Page needs setup in Netlify first.','err');
+    return;
+  }
+  const btn=E('appr-fb-post-btn');if(btn)btn.disabled=true;
+  try{
+    setSocialPostMsg('Posting to Facebook Page...');
+    const caption=(E('appr-fb-caption')?.value||'').trim();
+    const d=await socialPostRequest('/meta',{action:'postFacebook',caption,link:socialLinkFromCaption(caption),title:pendingApproval.title});
+    pendingApproval.fbDone=true;
+    psd('soc','do');pss('soc','Facebook posted');
+    plog('Facebook Page post published'+(d.id?' — ID: '+d.id:''),'lok');
+    setSocialPostMsg('Facebook Page post published'+(d.id?' — '+d.id:''),'ok');
+  }catch(e){
+    plog('Facebook publish failed: '+e.message,'ler');
+    setSocialPostMsg('Facebook error: '+e.message,'err');
+    if(btn)btn.disabled=false;
+  }
+}
+async function postInstagram(){
+  if(!pendingApproval)return;
+  if(!(_integrationStatus&&_integrationStatus.instagram)){
+    setSocialPostMsg('Instagram needs setup in Netlify first.','err');
+    return;
+  }
+  const btn=E('appr-ig-post-btn');if(btn)btn.disabled=true;
+  try{
+    setSocialPostMsg('Posting to Instagram...');
+    const caption=(E('appr-ig-caption')?.value||'').trim();
+    const imageUrl=(E('appr-ig-image-url')?.value||'').trim();
+    const d=await socialPostRequest('/meta',{action:'postInstagram',caption,imageUrl,title:pendingApproval.title});
+    pendingApproval.igDone=true;
+    psd('soc','do');pss('soc','Instagram posted');
+    plog('Instagram post published'+(d.id?' — ID: '+d.id:''),'lok');
+    setSocialPostMsg('Instagram post published'+(d.id?' — '+d.id:''),'ok');
+  }catch(e){
+    plog('Instagram publish failed: '+e.message,'ler');
+    setSocialPostMsg('Instagram error: '+e.message,'err');
+    if(btn)btn.disabled=false;
+  }
 }
 
 // ── Writer submits for review (no publish access) ──
@@ -8145,7 +8508,9 @@ function renderIntegrationStatus(){
     item('GPTZero',st.gptzero?'connected':'missing','Secondary/advisory AI-detection check. If calibration fails, it is not used as a hard gate.'),
     item('HubSpot',s.hsBlog?'connected':'missing',s.hsBlog?'Blog ID '+escapeHtml(String(s.hsBlog))+' is saved. Token migration to asset credentials is next.':'Connect a HubSpot asset during client setup.','asset'),
     item('WordPress',st.wordpress?'connected':'missing',st.wordpress?'nevisigaming.com publishing is configured server-side.':'Add WP_URL, WP_USER, and WP_PASS in Netlify environment variables.','asset'),
-    item('LinkedIn / Instagram','planned','Supported integration slots for the SaaS roadmap after website publishing is stable.','asset')
+    item('LinkedIn',st.linkedin?'connected':'missing',st.linkedin?'Direct company-page posting is configured server-side.':'Add LINKEDIN_ACCESS_TOKEN and LINKEDIN_ORGANIZATION_URN in Netlify environment variables.','asset'),
+    item('Facebook Page',st.facebook?'connected':'missing',st.facebook?'Direct Page posting is configured through Meta Graph API.':'Add META_ACCESS_TOKEN and META_PAGE_ID in Netlify environment variables.','asset'),
+    item('Instagram',st.instagram?'connected':'missing',st.instagram?'Instagram Business publishing is configured. Each post still needs a public image URL.':'Add META_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID in Netlify environment variables.','asset')
   ].join('');
 }
 
@@ -8688,7 +9053,11 @@ async function approveWP(){
           body:wpProxyBody({endpoint:'/wp-json/wp/v2/media',isMediaUpload:true,fileBase64:imgB64,fileName:fname,altText})
         });
         const imgJson=await imgRes.json();
-        if(imgRes.ok&&imgJson.id){featuredMediaId=imgJson.id;plog('Image uploaded via proxy — media ID: '+imgJson.id,'lok');}
+        if(imgRes.ok&&imgJson.id){
+          featuredMediaId=imgJson.id;
+          if(E('appr-ig-image-url')&&!E('appr-ig-image-url').value&&(imgJson.source_url||imgJson.guid?.rendered))E('appr-ig-image-url').value=imgJson.source_url||imgJson.guid.rendered;
+          plog('Image uploaded via proxy — media ID: '+imgJson.id,'lok');
+        }
         else{plog('Image upload failed: '+(imgJson.error?.message||imgJson.message||'HTTP '+imgRes.status),'ler');}
       }catch(imgErr){plog('Image upload error: '+imgErr.message,'ler');}
     }
@@ -8872,6 +9241,7 @@ async function approveWP(){
     if(wpPostLink){
       const editUrl=wpUrl+'/wp-admin/post.php?post='+data.id+'&action=edit';
       const viewUrl=data.link||wpUrl+'/?p='+data.id;
+      pa.publicUrl=viewUrl;
       E('wp-post-link-title').textContent=isLive?'✓ Article is live!':'✓ Draft created — edit and publish in WordPress';
       E('wp-post-edit-link').href=editUrl;
       E('wp-post-view-link').href=viewUrl;

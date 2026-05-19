@@ -4,6 +4,9 @@ function appRole(role) {
   if (role === 'platform_owner' || role === 'client_admin') return 'admin';
   if (role === 'reviewer') return 'editor';
   if (role === 'viewer') return 'writer';
+  if (role === 'sdr_manager') return 'sdr_manager';
+  if (role === 'sdr') return 'sdr';
+  if (role === 'bdm') return 'bdm';
   return role || 'writer';
 }
 
@@ -11,16 +14,22 @@ function platformRole(role) {
   if (role === 'admin') return 'client_admin';
   if (role === 'editor') return 'editor';
   if (role === 'writer') return 'writer';
+  if (role === 'sdr_manager') return 'sdr_manager';
+  if (role === 'sdr') return 'sdr';
+  if (role === 'bdm') return 'bdm';
   return role || 'writer';
 }
 
 function defaultPermissions(role) {
   if (role === 'platform_owner' || role === 'client_admin') {
-    return ['manage_users', 'manage_assets', 'manage_credentials', 'manage_competitors', 'manage_sources', 'manage_tone_profiles', 'generate_content', 'approve_content', 'publish_content'];
+    return ['manage_users', 'manage_assets', 'manage_credentials', 'manage_competitors', 'manage_sources', 'manage_tone_profiles', 'generate_content', 'approve_content', 'publish_content', 'use_sdr', 'manage_sdr', 'approve_sdr_messages', 'sync_sdr_hubspot', 'view_sdr_handovers'];
   }
   if (role === 'editor') return ['manage_sources', 'generate_content', 'approve_content', 'publish_content'];
   if (role === 'writer') return ['generate_content'];
   if (role === 'reviewer') return ['approve_content'];
+  if (role === 'sdr_manager') return ['use_sdr', 'manage_sdr', 'approve_sdr_messages', 'sync_sdr_hubspot'];
+  if (role === 'sdr') return ['use_sdr'];
+  if (role === 'bdm') return ['use_sdr', 'view_sdr_handovers'];
   return [];
 }
 
